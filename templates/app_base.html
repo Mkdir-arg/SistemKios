@@ -36,12 +36,18 @@
         </a>
       {% else %}
         <p class="px-3 pb-1 pt-4 font-mono text-[0.65rem] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Mi punto</p>
-        {% include "partials/nav_item.html" with label="Vender" pronto=True accent=True %}
+        <a href="{% url 'ventas:pos' %}" class="nav-link" {% if vn == 'ventas:pos' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5 text-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h18v4H3zM3 5v14M21 5v14M6 12h.01M6 16h6"/></svg>
+          Vender
+        </a>
         <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
           Sumar stock
         </a>
-        {% include "partials/nav_item.html" with label="Mi jornada" pronto=True %}
+        <a href="{% url 'caja:mi_jornada' %}" class="nav-link" {% if vn == 'caja:mi_jornada' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Mi jornada
+        </a>
       {% endif %}
       {% endwith %}
     </nav>
@@ -85,6 +91,19 @@
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+      {% if messages %}
+        <div class="mx-auto mb-4 flex max-w-5xl flex-col gap-2">
+          {% for m in messages %}
+            <div class="rounded-xl border px-4 py-3 text-sm
+                        {% if m.tags == 'success' %}border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400
+                        {% elif m.tags == 'error' %}border-scan/30 bg-scan-soft text-scan dark:bg-scan/10
+                        {% elif m.tags == 'warning' %}border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400
+                        {% else %}border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300{% endif %}">
+              {{ m }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

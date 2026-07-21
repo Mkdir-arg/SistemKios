@@ -5,6 +5,8 @@
 
 {% block content %}
 {% url 'stock:ingreso' as url_ingreso_stock %}
+{% url 'ventas:pos' as url_pos %}
+{% url 'caja:mi_jornada' as url_jornada %}
 <div class="mx-auto max-w-5xl">
 
   {# Saludo #}
@@ -50,9 +52,9 @@
       {% include "partials/module_card.html" with title="Ventas y caja" desc="POS con lector, jornada y arqueo." fase="Fase 2" %}
       {% include "partials/module_card.html" with title="Reportes" desc="Ventas, stock y horas trabajadas." fase="Fase 4" %}
     {% else %}
-      {% include "partials/module_card.html" with title="Vender" desc="Escaneá productos, cobrá y descontá stock." fase="Fase 2" icon="scan" accent=True %}
+      {% include "partials/module_card.html" with title="Vender" desc="Escaneá productos, cobrá y descontá stock." icon="scan" accent=True done=True url=url_pos %}
       {% include "partials/module_card.html" with title="Sumar stock" desc="Cargá mercadería escaneando el código de barras." icon="box" done=True url=url_ingreso_stock %}
-      {% include "partials/module_card.html" with title="Mi jornada" desc="Iniciá tu turno, controlá tu caja y cerrá con arqueo." fase="Fase 2" icon="clock" %}
+      {% include "partials/module_card.html" with title="Mi jornada" desc="Controlá tu caja y cerrá con arqueo." icon="clock" done=True url=url_jornada %}
     {% endif %}
   </div>
 
