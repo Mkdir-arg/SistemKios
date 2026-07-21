@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* Escaneo de clases usadas en plantillas y código Python. */
+@source "../../templates";
+@source "../../apps";
+
+/* Dark mode por clase `.dark` (además de prefers-color-scheme, que resolvemos
+   en un script inline en el <head> para evitar el flash al cargar). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Tipografías: display con carácter, sans limpia, mono para códigos/números. */
+  --font-display: "Bricolage Grotesque", "Geist", system-ui, sans-serif;
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  /* Marca: indigo-violeta. */
+  --color-brand-50: #eef1ff;
+  --color-brand-100: #e0e5ff;
+  --color-brand-200: #c7ceff;
+  --color-brand-300: #a5adff;
+  --color-brand-400: #838bfc;
+  --color-brand-500: #6b6ef4;
+  --color-brand-600: #5a54e8;
+  --color-brand-700: #4c43cf;
+  --color-brand-800: #3f39a6;
+  --color-brand-900: #363483;
+  --color-brand-950: #201d4d;
+
+  /* Acento "scan": el rojo del lector de código de barras. Se usa con moderación. */
+  --color-scan: #e5484d;
+  --color-scan-soft: #fceceb;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: "cv02", "cv03", "cv04";
+  }
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased;
+    @apply dark:bg-zinc-950 dark:text-zinc-100;
+  }
+  /* Números alineados en tablas y montos. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Campos de formulario (los usa LoginForm vía el atributo class). */
+  .input {
+    @apply w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-[0.95rem] text-zinc-900 shadow-sm outline-none transition;
+    @apply placeholder:text-zinc-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15;
+    @apply dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-brand-400;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[0.95rem] font-medium transition;
+    @apply focus-visible:outline-none focus-visible:ring-4 active:scale-[0.985];
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-white shadow-lg shadow-brand-600/25 hover:bg-brand-500 focus-visible:ring-brand-500/30;
+  }
+  .btn-ghost {
+    @apply text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100;
+  }
+
+  .card {
+    @apply rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900;
+  }
+
+  /* Ítem de navegación del sidebar. */
+  .nav-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-600 transition;
+    @apply hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-100;
+  }
+  .nav-link[aria-current="page"] {
+    @apply bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300;
+  }
+
+  /* Etiqueta tipo "chip" en mono. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 font-mono text-[0.7rem] uppercase tracking-wider text-zinc-500;
+    @apply dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400;
+  }
+}
+
+/* Motivo "lector de código de barras": línea roja que barre sobre las barras. */
+@keyframes scanline {
+  0% { top: 8%; opacity: 0.2; }
+  50% { top: 88%; opacity: 1; }
+  100% { top: 8%; opacity: 0.2; }
+}
+.scanline {
+  animation: scanline 3.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scanline {
+    animation: none;
+    top: 50%;
+  }
+}

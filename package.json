@@ -1,0 +1,13 @@
+{
+  "name": "sistemkios",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Estilos (Tailwind CSS v4) para SistemKios",
+  "scripts": {
+    "watch": "tailwindcss -i ./assets/css/input.css -o ./static/css/site.css --watch",
+    "build": "tailwindcss -i ./assets/css/input.css -o ./static/css/site.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0"
+  }
+}

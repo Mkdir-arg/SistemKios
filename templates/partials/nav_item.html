@@ -1,0 +1,12 @@
+{# Ítem de navegación placeholder para módulos que aún no existen. #}
+<div class="nav-link cursor-default opacity-60" title="Próximamente">
+  {% if accent %}
+    <svg class="h-5 w-5 text-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 5h18v4H3zM3 5v14M21 5v14M6 12h.01M6 16h6"/></svg>
+  {% else %}
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 10h16"/></svg>
+  {% endif %}
+  <span class="flex-1">{{ label }}</span>
+  {% if pronto %}
+    <span class="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wide text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">pronto</span>
+  {% endif %}
+</div>

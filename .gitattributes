@@ -1,0 +1,3 @@
+# Los scripts de shell deben mantener saltos de línea LF (para que corran en Docker/Linux).
+*.sh text eol=lf
+entrypoint.sh text eol=lf

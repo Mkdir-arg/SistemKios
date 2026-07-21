@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Django
+*.log
+db.sqlite3
+/staticfiles/
+
+# Entorno (no commitear secretos)
+.env
+
+# Node / Tailwind
+node_modules/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,65 @@
+{% extends "app_base.html" %}
+
+{% block title %}Inicio · SistemKios{% endblock %}
+{% block page_title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-5xl">
+
+  {# Saludo #}
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+        Hola, {{ user.get_short_name|default:user.username }} 👋
+      </h2>
+      <p class="mt-1 text-zinc-500 dark:text-zinc-400">
+        {% if user.es_super_admin %}
+          Tenés el control total del sistema.
+        {% else %}
+          {% if user.punto %}Estás trabajando en <span class="font-medium text-zinc-700 dark:text-zinc-200">{{ user.punto }}</span>.{% else %}Todavía no tenés un punto asignado. Pedile al administrador que te asigne uno.{% endif %}
+        {% endif %}
+      </p>
+    </div>
+    <span class="chip">
+      <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+      {{ user.get_rol_display }}
+    </span>
+  </div>
+
+  {# Aviso de etapa #}
+  <div class="card mt-6 flex items-start gap-3 p-4">
+    <div class="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+    </div>
+    <div class="text-sm">
+      <p class="font-medium">Fase 0 lista: fundaciones del sistema.</p>
+      <p class="mt-0.5 text-zinc-500 dark:text-zinc-400">Ya está el acceso, los roles y los puntos. Los módulos de abajo se van encendiendo en las próximas fases.</p>
+    </div>
+  </div>
+
+  {# Módulos #}
+  <h3 class="mt-8 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Módulos</h3>
+  <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+    {% if user.es_super_admin %}
+      {% include "partials/module_card.html" with title="Puntos" desc="Tus locales a la calle, cada uno con su stock y su caja." fase="Fase 0" icon="store" done=True %}
+      {% include "partials/module_card.html" with title="Usuarios" desc="Crear vendedores y asignarlos a un punto." fase="Fase 0" icon="users" done=True %}
+      {% include "partials/module_card.html" with title="Productos y precios" desc="Catálogo, códigos de barras y precio por punto." fase="Fase 1" %}
+      {% include "partials/module_card.html" with title="Stock" desc="Ingreso de mercadería con lector y control por punto." fase="Fase 1" %}
+      {% include "partials/module_card.html" with title="Ventas y caja" desc="POS con lector, jornada y arqueo." fase="Fase 2" %}
+      {% include "partials/module_card.html" with title="Reportes" desc="Ventas, stock y horas trabajadas." fase="Fase 4" %}
+    {% else %}
+      {% include "partials/module_card.html" with title="Vender" desc="Escaneá productos, cobrá y descontá stock." fase="Fase 2" icon="scan" accent=True %}
+      {% include "partials/module_card.html" with title="Sumar stock" desc="Cargá mercadería escaneando el código de barras." fase="Fase 1" icon="box" %}
+      {% include "partials/module_card.html" with title="Mi jornada" desc="Iniciá tu turno, controlá tu caja y cerrá con arqueo." fase="Fase 2" icon="clock" %}
+    {% endif %}
+  </div>
+
+  {% if user.es_super_admin %}
+    <p class="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
+      Mientras construimos las pantallas, podés cargar puntos y usuarios desde el
+      <a href="/panel-django/" class="font-medium text-brand-600 underline-offset-2 hover:underline dark:text-brand-300">Panel Django</a>.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}
