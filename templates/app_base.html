@@ -14,7 +14,8 @@
     </div>
 
     <nav class="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-      <a href="{% url 'core:home' %}" class="nav-link" aria-current="page">
+      {% with vn=request.resolver_match.view_name %}
+      <a href="{% url 'core:home' %}" class="nav-link" {% if vn == 'core:home' %}aria-current="page"{% endif %}>
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
         Inicio
       </a>
@@ -24,7 +25,10 @@
         {% include "partials/nav_item.html" with label="Puntos" pronto=True %}
         {% include "partials/nav_item.html" with label="Usuarios" pronto=True %}
         {% include "partials/nav_item.html" with label="Productos" pronto=True %}
-        {% include "partials/nav_item.html" with label="Stock" pronto=True %}
+        <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+          Sumar stock
+        </a>
         {% include "partials/nav_item.html" with label="Reportes" pronto=True %}
         <a href="/panel-django/" class="nav-link">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l8 4v6c0 4.4-3.1 7.4-8 8-4.9-.6-8-3.6-8-8V7z"/></svg>
@@ -33,9 +37,13 @@
       {% else %}
         <p class="px-3 pb-1 pt-4 font-mono text-[0.65rem] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Mi punto</p>
         {% include "partials/nav_item.html" with label="Vender" pronto=True accent=True %}
-        {% include "partials/nav_item.html" with label="Sumar stock" pronto=True %}
+        <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+          Sumar stock
+        </a>
         {% include "partials/nav_item.html" with label="Mi jornada" pronto=True %}
       {% endif %}
+      {% endwith %}
     </nav>
 
     {# Tarjeta de usuario + salir #}

@@ -4,6 +4,7 @@
 {% block page_title %}Inicio{% endblock %}
 
 {% block content %}
+{% url 'stock:ingreso' as url_ingreso_stock %}
 <div class="mx-auto max-w-5xl">
 
   {# Saludo #}
@@ -45,12 +46,12 @@
       {% include "partials/module_card.html" with title="Puntos" desc="Tus locales a la calle, cada uno con su stock y su caja." fase="Fase 0" icon="store" done=True %}
       {% include "partials/module_card.html" with title="Usuarios" desc="Crear vendedores y asignarlos a un punto." fase="Fase 0" icon="users" done=True %}
       {% include "partials/module_card.html" with title="Productos y precios" desc="Catálogo, códigos de barras y precio por punto." fase="Fase 1" %}
-      {% include "partials/module_card.html" with title="Stock" desc="Ingreso de mercadería con lector y control por punto." fase="Fase 1" %}
+      {% include "partials/module_card.html" with title="Sumar stock" desc="Ingresá mercadería escaneando el código de barras." icon="scan" done=True url=url_ingreso_stock %}
       {% include "partials/module_card.html" with title="Ventas y caja" desc="POS con lector, jornada y arqueo." fase="Fase 2" %}
       {% include "partials/module_card.html" with title="Reportes" desc="Ventas, stock y horas trabajadas." fase="Fase 4" %}
     {% else %}
       {% include "partials/module_card.html" with title="Vender" desc="Escaneá productos, cobrá y descontá stock." fase="Fase 2" icon="scan" accent=True %}
-      {% include "partials/module_card.html" with title="Sumar stock" desc="Cargá mercadería escaneando el código de barras." fase="Fase 1" icon="box" %}
+      {% include "partials/module_card.html" with title="Sumar stock" desc="Cargá mercadería escaneando el código de barras." icon="box" done=True url=url_ingreso_stock %}
       {% include "partials/module_card.html" with title="Mi jornada" desc="Iniciá tu turno, controlá tu caja y cerrá con arqueo." fase="Fase 2" icon="clock" %}
     {% endif %}
   </div>

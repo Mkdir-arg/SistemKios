@@ -1,0 +1,283 @@
+{% extends "app_base.html" %}
+
+{% block title %}Sumar stock · SistemKios{% endblock %}
+{% block page_title %}Sumar stock{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl"
+     x-data="ingresoStock({ puntoFijo: {{ punto_fijo.id|default:'null' }}, esSuperAdmin: {{ es_super_admin|yesno:'true,false' }} })">
+
+  {# --- Contexto de punto --- #}
+  {% if punto_fijo %}
+    <div class="mb-5 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+      <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>{{ punto_fijo }}</span>
+      Estás cargando mercadería en tu punto.
+    </div>
+  {% elif es_super_admin %}
+    <div class="mb-5">
+      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Punto</label>
+      {% if puntos %}
+        <select class="input max-w-xs" x-model="puntoId" @change="reset()">
+          <option value="">Elegí un punto…</option>
+          {% for p in puntos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+        </select>
+      {% else %}
+        <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+          Todavía no hay puntos. Creá uno en el <a href="/panel-django/puntos/punto/add/" class="font-medium underline">Panel Django</a>.
+        </p>
+      {% endif %}
+    </div>
+  {% elif not punto_fijo %}
+    <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+      No tenés un punto asignado. Pedile al administrador que te asigne uno.
+    </p>
+  {% endif %}
+
+  {# --- Campo de escaneo --- #}
+  <div class="card p-5" :class="!puntoActual && 'pointer-events-none opacity-50'">
+    <label for="scan" class="mb-2 block font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+      Escaneá o escribí el código
+    </label>
+    <div class="relative">
+      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-scan">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M16.5 8v8"/></svg>
+      </span>
+      <input id="scan" x-ref="scan" x-model="scan" type="text" inputmode="numeric" autocomplete="off"
+             class="input !pl-12 font-mono text-lg" placeholder="7790000000000"
+             @keydown.enter.prevent="buscar()" :disabled="!puntoActual || cargando">
+    </div>
+    <p class="mt-2 text-xs text-zinc-400 dark:text-zinc-500">Pasá el lector y el sistema busca solo. También podés tipear el código y apretar Enter.</p>
+  </div>
+
+  {# --- Error --- #}
+  <template x-if="error">
+    <div class="mt-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10" x-text="error"></div>
+  </template>
+
+  {# --- Producto encontrado --- #}
+  <template x-if="estado === 'encontrado'">
+    <div class="card mt-4 p-5">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="font-mono text-xs text-zinc-400" x-text="producto.codigo"></p>
+          <h3 class="font-display text-xl font-semibold tracking-tight" x-text="producto.nombre"></h3>
+          <p class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+            <span x-show="producto.categoria" x-text="producto.categoria"></span>
+            <span x-show="producto.precio">· $<span x-text="producto.precio"></span></span>
+          </p>
+        </div>
+        <div class="text-right">
+          <p class="font-mono text-xs uppercase tracking-wider text-zinc-400">Stock actual</p>
+          <p class="tnum font-display text-3xl font-bold" x-text="producto.stock_actual"></p>
+        </div>
+      </div>
+
+      <div class="mt-5 flex flex-wrap items-end gap-3">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Cantidad a sumar</label>
+          <div class="flex items-center gap-2">
+            <button type="button" class="btn btn-ghost !px-3 !py-2 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="cantidad = Math.max(1, cantidad - 1)">−</button>
+            <input x-ref="cantidad" x-model.number="cantidad" type="number" min="1" class="input tnum w-24 text-center text-lg" @keydown.enter.prevent="agregar()">
+            <button type="button" class="btn btn-ghost !px-3 !py-2 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="cantidad = cantidad + 1">+</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" @click="agregar()" :disabled="cargando">
+          Sumar al stock
+          <span class="tnum" x-text="'(' + (producto.stock_actual + cantidad) + ')'"></span>
+        </button>
+        <button type="button" class="btn btn-ghost" @click="reset()">Cancelar</button>
+      </div>
+    </div>
+  </template>
+
+  {# --- Alta rápida (código no encontrado) --- #}
+  <template x-if="estado === 'nuevo'">
+    <div class="card mt-4 p-5">
+      <div class="mb-4 flex items-center gap-2">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-scan-soft text-scan dark:bg-scan/10">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </span>
+        <div>
+          <h3 class="font-display text-lg font-semibold tracking-tight">Producto nuevo</h3>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">El código <span class="font-mono" x-text="nuevo.codigo"></span> no existe. Cargalo.</p>
+        </div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="sm:col-span-2">
+          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Nombre</label>
+          <input x-ref="nombre" x-model="nuevo.nombre" type="text" class="input" placeholder="Ej: Coca-Cola 500ml">
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
+          <select x-model="nuevo.categoria" class="input">
+            <option value="">Sin categoría</option>
+            {% for c in categorias %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Precio de venta</label>
+          <input x-model="nuevo.precio_venta" type="number" step="0.01" min="0" class="input tnum" placeholder="0.00">
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Costo (opcional)</label>
+          <input x-model="nuevo.costo" type="number" step="0.01" min="0" class="input tnum" placeholder="0.00">
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Cantidad inicial</label>
+          <input x-model.number="nuevo.cantidad" type="number" min="0" class="input tnum" placeholder="0">
+        </div>
+      </div>
+
+      <div class="mt-5 flex gap-3">
+        <button type="button" class="btn btn-primary" @click="crear()" :disabled="cargando">Crear y cargar</button>
+        <button type="button" class="btn btn-ghost" @click="reset()">Cancelar</button>
+      </div>
+    </div>
+  </template>
+
+  {# --- Historial de esta sesión --- #}
+  <template x-if="log.length">
+    <div class="mt-8">
+      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Cargado recién</h3>
+      <ul class="flex flex-col gap-2">
+        <template x-for="(item, i) in log" :key="i">
+          <li class="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <span class="tnum inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                  x-text="'+' + item.agregado"></span>
+            <span class="min-w-0 flex-1 truncate" x-text="item.nombre"></span>
+            <span x-show="item.creado" class="chip !py-0.5">nuevo</span>
+            <span class="tnum text-zinc-400" x-text="'stock ' + item.stock_actual"></span>
+          </li>
+        </template>
+      </ul>
+    </div>
+  </template>
+</div>
+
+<script>
+  window.ingresoStock = function (opts) {
+    return {
+      esSuperAdmin: opts.esSuperAdmin,
+      puntoFijo: opts.puntoFijo,
+      puntoId: "",
+      scan: "",
+      estado: "idle",      // idle | encontrado | nuevo
+      cargando: false,
+      error: "",
+      producto: {},
+      cantidad: 1,
+      nuevo: { codigo: "", nombre: "", categoria: "", precio_venta: "", costo: "", cantidad: 0 },
+      log: [],
+
+      get puntoActual() {
+        return this.puntoFijo || (this.puntoId ? parseInt(this.puntoId) : null);
+      },
+
+      _csrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : "";
+      },
+
+      async _post(url, body) {
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": this._csrf() },
+          body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Ocurrió un error.");
+        return data;
+      },
+
+      focusScan() {
+        this.$nextTick(() => { this.$refs.scan && this.$refs.scan.focus(); });
+      },
+
+      reset() {
+        this.estado = "idle";
+        this.error = "";
+        this.scan = "";
+        this.producto = {};
+        this.cantidad = 1;
+        this.nuevo = { codigo: "", nombre: "", categoria: "", precio_venta: "", costo: "", cantidad: 0 };
+        this.focusScan();
+      },
+
+      async buscar() {
+        const codigo = this.scan.trim();
+        if (!codigo || !this.puntoActual) return;
+        this.error = "";
+        this.cargando = true;
+        try {
+          const params = new URLSearchParams({ codigo, punto: this.puntoActual || "" });
+          const r = await fetch("{% url 'stock:buscar' %}?" + params.toString());
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || "Error al buscar.");
+          if (data.found) {
+            this.producto = data.producto;
+            this.cantidad = 1;
+            this.estado = "encontrado";
+            this.$nextTick(() => this.$refs.cantidad && this.$refs.cantidad.select());
+          } else {
+            this.nuevo.codigo = data.codigo;
+            this.estado = "nuevo";
+            this.$nextTick(() => this.$refs.nombre && this.$refs.nombre.focus());
+          }
+        } catch (e) {
+          this.error = e.message;
+        } finally {
+          this.cargando = false;
+        }
+      },
+
+      async agregar() {
+        if (this.cargando) return;
+        this.cargando = true;
+        this.error = "";
+        try {
+          const data = await this._post("{% url 'stock:agregar' %}", {
+            producto_id: this.producto.id,
+            punto: this.puntoActual,
+            cantidad: this.cantidad,
+          });
+          this.log.unshift({ ...data.producto, agregado: data.agregado, creado: false });
+          this.reset();
+        } catch (e) {
+          this.error = e.message;
+        } finally {
+          this.cargando = false;
+        }
+      },
+
+      async crear() {
+        if (this.cargando) return;
+        this.cargando = true;
+        this.error = "";
+        try {
+          const data = await this._post("{% url 'stock:alta' %}", {
+            punto: this.puntoActual,
+            codigo: this.nuevo.codigo,
+            nombre: this.nuevo.nombre,
+            categoria: this.nuevo.categoria,
+            precio_venta: this.nuevo.precio_venta,
+            costo: this.nuevo.costo,
+            cantidad: this.nuevo.cantidad,
+          });
+          this.log.unshift({ ...data.producto, agregado: data.producto.stock_actual, creado: true });
+          this.reset();
+        } catch (e) {
+          this.error = e.message;
+        } finally {
+          this.cargando = false;
+        }
+      },
+
+      init() {
+        {% if es_super_admin and puntos|length == 1 %}this.puntoId = "{{ puntos.0.id }}";{% endif %}
+        this.focusScan();
+      },
+    };
+  };
+</script>
+{% endblock %}

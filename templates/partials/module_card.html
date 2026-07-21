@@ -1,5 +1,5 @@
-{# Tarjeta de módulo del dashboard. Params: title, desc, fase, icon, done, accent #}
-<div class="card group relative flex flex-col gap-3 p-5 {% if not done %}opacity-90{% endif %}">
+{# Tarjeta de módulo del dashboard. Params: title, desc, fase, icon, done, accent, url #}
+{% if url %}<a href="{{ url }}" class="card group relative flex flex-col gap-3 p-5 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:hover:border-brand-500/40">{% else %}<div class="card group relative flex flex-col gap-3 p-5 {% if not done %}opacity-90{% endif %}">{% endif %}
   <div class="flex items-center justify-between">
     <div class="flex h-10 w-10 items-center justify-center rounded-xl
                 {% if accent %}bg-scan-soft text-scan dark:bg-scan/10{% else %}bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300{% endif %}">
@@ -28,7 +28,7 @@
   </div>
 
   <div>
-    <h4 class="font-display text-base font-semibold tracking-tight">{{ title }}</h4>
+    <h4 class="font-display text-base font-semibold tracking-tight">{{ title }}{% if url %} <span class="text-brand-500 opacity-0 transition group-hover:opacity-100">→</span>{% endif %}</h4>
     <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ desc }}</p>
   </div>
-</div>
+{% if url %}</a>{% else %}</div>{% endif %}

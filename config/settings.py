@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.puntos",
     "apps.accounts",
+    "apps.catalogo",
+    "apps.stock",
 ]
 
 MIDDLEWARE = [
