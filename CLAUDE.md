@@ -44,7 +44,11 @@ Login en `/ingresar/`. Panel de Django en `/panel-django/`.
   (StockPunto, MovimientoStock, servicio `aplicar_movimiento`); pantalla "Sumar stock" con lector.
 - **Fase 2 (hecha):** apps `caja` (Jornada, MovimientoCaja, arqueo) y `ventas`
   (Venta/DetalleVenta/Pago, `registrar_venta`); POS con lector y cobro pago mixto; Mi jornada.
-- **Fase 3 (siguiente):** tiempo real con Channels — consumers en `config/routing.py`,
-  grupos `punto_{id}`, emitir en ventas/stock/jornada; front se suscribe por WebSocket.
-- **Fase 4:** transferencias entre puntos + reportes (ventas, stock, horas por vendedor).
+- **Fase 3 (hecha):** tiempo real con Channels — `PuntoConsumer` (grupos `punto_{id}`),
+  `apps/core/realtime.notificar_punto`, eventos on_commit en stock/ventas/jornada,
+  `static/js/realtime.js`, feed en vivo en dashboard, stock del POS reactivo.
+- **Fase 4 (hecha):** app `transferencias` (Transferencia/TransferenciaItem, `crear_transferencia`
+  atómico salida/entrada); reportes en `apps/core` (ventas por punto/medio, stock bajo mínimo,
+  horas por vendedor).
+- **MVP COMPLETO** (fases 0-4). Todo corre con `docker compose up` y está commiteado.
 - Fuera de MVP: facturación AFIP, clientes/cuenta corriente, productos por peso, variantes.

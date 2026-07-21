@@ -29,7 +29,14 @@
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
           Sumar stock
         </a>
-        {% include "partials/nav_item.html" with label="Reportes" pronto=True %}
+        <a href="{% url 'transferencias:nueva' %}" class="nav-link" {% if vn == 'transferencias:nueva' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>
+          Transferencias
+        </a>
+        <a href="{% url 'core:reportes' %}" class="nav-link" {% if vn == 'core:reportes' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          Reportes
+        </a>
         <a href="/panel-django/" class="nav-link">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l8 4v6c0 4.4-3.1 7.4-8 8-4.9-.6-8-3.6-8-8V7z"/></svg>
           Panel Django

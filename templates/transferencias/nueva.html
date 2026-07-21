@@ -1,0 +1,127 @@
+{% extends "app_base.html" %}
+
+{% block title %}Transferencia · SistemKios{% endblock %}
+{% block page_title %}Transferir stock{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl" x-data="transferencia()">
+
+  {% if puntos|length < 2 %}
+    <div class="card p-6 text-center">
+      <p class="text-sm text-zinc-500 dark:text-zinc-400">Necesitás al menos dos puntos activos para transferir. Creá otro en el <a href="/panel-django/puntos/punto/" class="font-medium text-brand-600 underline">Panel Django</a>.</p>
+    </div>
+  {% else %}
+  {# Origen / destino #}
+  <div class="card grid gap-4 p-5 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
+    <div>
+      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Desde (origen)</label>
+      <select x-model="origen" @change="items = []" class="input">
+        <option value="">Elegí…</option>
+        {% for p in puntos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="hidden pb-3 text-zinc-300 sm:block dark:text-zinc-600">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </div>
+    <div>
+      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Hacia (destino)</label>
+      <select x-model="destino" class="input">
+        <option value="">Elegí…</option>
+        {% for p in puntos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {# Escaneo #}
+  <div class="card mt-4 p-4" :class="!origen && 'pointer-events-none opacity-50'">
+    <div class="relative">
+      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-scan">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M16.5 8v8"/></svg>
+      </span>
+      <input x-ref="scan" x-model="scan" type="text" inputmode="numeric" autocomplete="off"
+             class="input !pl-12 font-mono text-lg" placeholder="Escaneá para agregar al envío…"
+             @keydown.enter.prevent="buscar()" :disabled="!origen || cargando">
+    </div>
+    <template x-if="error"><p class="mt-2 text-sm text-scan" x-text="error"></p></template>
+  </div>
+
+  {# Ítems #}
+  <template x-if="items.length">
+    <ul class="mt-4 flex flex-col gap-2">
+      <template x-for="(it, i) in items" :key="it.id">
+        <li class="card flex items-center gap-3 p-3">
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-medium" x-text="it.nombre"></p>
+            <p class="font-mono text-xs text-zinc-400">disponible en origen: <span x-text="it.stock_origen"></span></p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="dec(i)">−</button>
+            <span class="tnum w-8 text-center font-semibold" x-text="it.cantidad"></span>
+            <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="inc(i)">+</button>
+          </div>
+          <button type="button" class="btn btn-ghost !p-1.5 text-zinc-400 hover:text-scan" @click="items.splice(i,1)" aria-label="Quitar">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </li>
+      </template>
+    </ul>
+  </template>
+
+  <div class="mt-5 flex items-center gap-3">
+    <button type="button" class="btn btn-primary" :disabled="!items.length || !destino || cargando" @click="confirmar()">
+      Transferir <span class="tnum" x-text="items.length ? '(' + totalUnidades + ' u)' : ''"></span>
+    </button>
+    <template x-if="ultima">
+      <span class="text-sm text-emerald-600 dark:text-emerald-400">Transferencia #<span x-text="ultima"></span> realizada.</span>
+    </template>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  window.transferencia = function () {
+    return {
+      origen: "", destino: "", scan: "", items: [], cargando: false, error: "", ultima: null,
+      get totalUnidades() { return this.items.reduce((s, it) => s + it.cantidad, 0); },
+      _csrf() { const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ""; },
+      async buscar() {
+        const codigo = this.scan.trim();
+        if (!codigo || !this.origen) return;
+        this.error = ""; this.cargando = true;
+        try {
+          const r = await fetch("{% url 'transferencias:buscar' %}?codigo=" + encodeURIComponent(codigo) + "&origen=" + this.origen);
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || "Error.");
+          if (!data.found) { this.error = "Código no encontrado: " + codigo; }
+          else { this.agregar(data.producto); }
+        } catch (e) { this.error = e.message; }
+        finally { this.scan = ""; this.cargando = false; this.$nextTick(() => this.$refs.scan && this.$refs.scan.focus()); }
+      },
+      agregar(prod) {
+        if (prod.stock_origen <= 0) { this.error = prod.nombre + " no tiene stock en el origen."; return; }
+        const it = this.items.find((x) => x.id === prod.id);
+        if (it) { if (it.cantidad < it.stock_origen) it.cantidad++; else this.error = "No hay más stock en origen."; }
+        else this.items.unshift({ id: prod.id, nombre: prod.nombre, stock_origen: prod.stock_origen, cantidad: 1 });
+      },
+      inc(i) { const it = this.items[i]; if (it.cantidad < it.stock_origen) it.cantidad++; },
+      dec(i) { const it = this.items[i]; if (it.cantidad > 1) it.cantidad--; else this.items.splice(i, 1); },
+      async confirmar() {
+        if (this.cargando) return;
+        if (this.origen === this.destino) { this.error = "El origen y el destino deben ser distintos."; return; }
+        this.cargando = true; this.error = "";
+        try {
+          const r = await fetch("{% url 'transferencias:confirmar' %}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": this._csrf() },
+            body: JSON.stringify({ origen: this.origen, destino: this.destino, items: this.items.map((it) => ({ producto_id: it.id, cantidad: it.cantidad })) }),
+          });
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || "Error.");
+          this.ultima = data.transferencia_id; this.items = []; this.scan = "";
+        } catch (e) { this.error = e.message; }
+        finally { this.cargando = false; }
+      },
+    };
+  };
+</script>
+{% endblock %}
