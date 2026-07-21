@@ -4,6 +4,8 @@ que actualiza el saldo de forma atómica y deja el registro en el kardex.
 """
 from django.db import transaction
 
+from apps.core.realtime import notificar_punto
+
 from .models import MovimientoStock, StockPunto
 
 
@@ -44,6 +46,19 @@ def aplicar_movimiento(*, producto, punto, tipo, delta, usuario=None, nota=""):
         resultante=nuevo,
         usuario=usuario,
         nota=nota,
+    )
+
+    # Notifica en vivo al punto una vez confirmada la transacción.
+    bajo = stock.stock_minimo > 0 and nuevo <= stock.stock_minimo
+    transaction.on_commit(
+        lambda: notificar_punto(
+            punto.id,
+            "stock",
+            producto_id=producto.id,
+            nombre=producto.nombre,
+            cantidad=nuevo,
+            bajo_minimo=bajo,
+        )
     )
     return stock, movimiento
 

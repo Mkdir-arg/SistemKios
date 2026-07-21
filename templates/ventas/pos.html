@@ -4,7 +4,7 @@
 {% block page_title %}Vender{% endblock %}
 
 {% block content %}
-<div x-data="pos()" class="mx-auto max-w-6xl">
+<div x-data="pos({ puntoId: {{ jornada.punto.id }} })" class="mx-auto max-w-6xl">
   <div class="mb-4 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
     <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Jornada abierta</span>
     {{ jornada.punto }}
@@ -142,8 +142,9 @@
 </div>
 
 <script>
-  window.pos = function () {
+  window.pos = function (opts) {
     return {
+      puntoId: opts.puntoId,
       scan: "",
       items: [],
       cargando: false,
@@ -228,7 +229,17 @@
         finally { this.cargando = false; }
       },
 
-      init() { this.focusScan(); },
+      init() {
+        this.focusScan();
+        if (window.SKRealtime && this.puntoId) {
+          window.SKRealtime.connect(this.puntoId, (ev) => {
+            if (ev.tipo === "stock") {
+              const it = this.items.find((x) => x.id === ev.producto_id);
+              if (it) { it.stock = ev.cantidad; if (it.cantidad > it.stock) it.cantidad = Math.max(1, it.stock); }
+            }
+          });
+        }
+      },
     };
   };
 </script>

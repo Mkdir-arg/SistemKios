@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db import transaction
 
+from apps.core.realtime import notificar_punto
 from apps.catalogo.models import Producto
 from apps.stock.models import MovimientoStock
 from apps.stock.services import aplicar_movimiento
@@ -80,4 +81,14 @@ def registrar_venta(*, jornada, usuario, items, pagos):
             continue
         Pago.objects.create(venta=venta, medio=p.get("medio"), monto=monto)
 
+    transaction.on_commit(
+        lambda: notificar_punto(
+            venta.punto_id,
+            "venta",
+            venta_id=venta.id,
+            total=str(venta.total),
+            items=len(normalizados),
+            vendedor=usuario.get_short_name() or usuario.username,
+        )
+    )
     return venta

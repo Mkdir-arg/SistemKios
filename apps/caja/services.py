@@ -5,6 +5,8 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.core.realtime import notificar_punto
+
 from .models import Jornada, MovimientoCaja
 
 
@@ -23,9 +25,16 @@ def abrir_jornada(*, vendedor, punto, monto_inicial=Decimal("0.00")):
         raise JornadaError("Ya tenés una jornada abierta.")
     if punto is None:
         raise JornadaError("No tenés un punto asignado para abrir la jornada.")
-    return Jornada.objects.create(
+    jornada = Jornada.objects.create(
         vendedor=vendedor, punto=punto, monto_inicial=monto_inicial
     )
+    transaction.on_commit(
+        lambda: notificar_punto(
+            punto.id, "jornada", estado="abierta",
+            vendedor=vendedor.get_short_name() or vendedor.username,
+        )
+    )
+    return jornada
 
 
 def registrar_movimiento_caja(*, jornada, tipo, monto, motivo=""):
@@ -74,6 +83,12 @@ def cerrar_jornada(*, jornada, monto_final):
     jornada.hora_fin = timezone.now()
     jornada.estado = Jornada.Estado.CERRADA
     jornada.save(update_fields=["monto_final", "hora_fin", "estado"])
+    transaction.on_commit(
+        lambda: notificar_punto(
+            jornada.punto_id, "jornada", estado="cerrada",
+            vendedor=jornada.vendedor.get_short_name() or jornada.vendedor.username,
+        )
+    )
     return {
         "esperado": esperado,
         "contado": monto_final,

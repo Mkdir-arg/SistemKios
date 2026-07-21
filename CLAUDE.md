@@ -40,5 +40,11 @@ Login en `/ingresar/`. Panel de Django en `/panel-django/`.
 ## Estado / fases
 
 - **Fase 0 (hecha):** proyecto, Docker, login, roles, `Punto`, `User`, dashboard.
-- Próximas: 1) catálogo y stock · 2) jornada/ventas/caja · 3) tiempo real · 4) transferencias/reportes.
+- **Fase 1 (hecha):** apps `catalogo` (Producto, CodigoBarras, PrecioPunto) y `stock`
+  (StockPunto, MovimientoStock, servicio `aplicar_movimiento`); pantalla "Sumar stock" con lector.
+- **Fase 2 (hecha):** apps `caja` (Jornada, MovimientoCaja, arqueo) y `ventas`
+  (Venta/DetalleVenta/Pago, `registrar_venta`); POS con lector y cobro pago mixto; Mi jornada.
+- **Fase 3 (siguiente):** tiempo real con Channels — consumers en `config/routing.py`,
+  grupos `punto_{id}`, emitir en ventas/stock/jornada; front se suscribe por WebSocket.
+- **Fase 4:** transferencias entre puntos + reportes (ventas, stock, horas por vendedor).
 - Fuera de MVP: facturación AFIP, clientes/cuenta corriente, productos por peso, variantes.

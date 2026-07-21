@@ -1,6 +1,11 @@
 """
-Rutas WebSocket. Vacío por ahora; en la Fase 3 se agregan los consumers
-(grupos por punto: `punto_{id}`) para stock, ventas y jornadas en vivo.
+Rutas WebSocket. Grupos por punto (`punto_{id}`) para stock, ventas y jornadas
+en vivo.
 """
+from django.urls import path
 
-websocket_urlpatterns = []
+from apps.core.consumers import PuntoConsumer
+
+websocket_urlpatterns = [
+    path("ws/punto/<int:punto_id>/", PuntoConsumer.as_asgi()),
+]
