@@ -18,6 +18,9 @@ services:
 
   web:
     build: .
+    # En desarrollo usamos runserver (recarga automática); la imagen por defecto
+    # arranca con Daphne para producción.
+    command: python manage.py runserver 0.0.0.0:8000
     env_file: .env
     volumes:
       - .:/app

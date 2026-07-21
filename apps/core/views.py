@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, F, Sum
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
@@ -8,6 +9,11 @@ from apps.caja.models import Jornada
 from apps.puntos.models import Punto
 from apps.stock.models import StockPunto
 from apps.ventas.models import Pago, Venta
+
+
+def healthz(request):
+    """Endpoint liviano para el healthcheck de la plataforma."""
+    return HttpResponse("ok", content_type="text/plain")
 
 
 @login_required

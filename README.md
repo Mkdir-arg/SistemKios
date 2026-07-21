@@ -62,6 +62,29 @@ static/css/        CSS compilado (site.css)
   transferencias y reportes. Un superusuario de Django es siempre Super Admin.
 - **Vendedor:** trabaja en un punto; solo vende y suma stock.
 
+## Deploy en Railway (Docker)
+
+El proyecto está listo para Railway (o cualquier host Docker: Render, Fly.io).
+El `Dockerfile` es multi-stage: compila Tailwind y arma la imagen Python que
+arranca con **Daphne** (ASGI/WebSockets). El `entrypoint.sh` migra, junta los
+estáticos (WhiteNoise) y crea el Super Admin.
+
+1. **Proyecto y servicios**: creá un proyecto en Railway y agregá los plugins
+   **PostgreSQL** y **Redis**. Conectá este repo como servicio (Railway detecta
+   el `Dockerfile` solo).
+2. **Variables** del servicio web:
+   - `SECRET_KEY` = una clave larga y aleatoria
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+   - `REDIS_URL` = `${{Redis.REDIS_URL}}`
+   - `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD` / `DJANGO_SUPERUSER_EMAIL`
+   - (no hace falta `DEBUG`: queda en `False`)
+3. **Deploy**: Railway buildea y levanta Daphne en `$PORT`. El healthcheck pega
+   a `/healthz/`. Al arrancar corre migraciones, `collectstatic` y crea el admin.
+4. Entrá al dominio público (`https://…railway.app`) → `/ingresar/`.
+
+> WebSockets, Postgres y Redis funcionan de fábrica. **Vercel no sirve** para este
+> stack (no corre Docker ni mantiene conexiones WebSocket).
+
 ## Fases
 
 - **Fase 0 — Fundaciones** ✅ (esto): proyecto, Docker, acceso, roles y puntos.
