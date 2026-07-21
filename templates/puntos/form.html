@@ -1,0 +1,17 @@
+{% extends "app_base.html" %}
+
+{% block title %}{{ titulo }} · SistemKios{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-xl">
+  <form method="post" class="card flex flex-col gap-4 p-6">
+    {% csrf_token %}
+    {% for field in form %}{% include "partials/field.html" with field=field %}{% endfor %}
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{% url 'puntos:lista' %}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

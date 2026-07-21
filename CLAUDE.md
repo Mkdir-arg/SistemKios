@@ -51,4 +51,7 @@ Login en `/ingresar/`. Panel de Django en `/panel-django/`.
   atómico salida/entrada); reportes en `apps/core` (ventas por punto/medio, stock bajo mínimo,
   horas por vendedor).
 - **MVP COMPLETO** (fases 0-4). Todo corre con `docker compose up` y está commiteado.
+- **ABM en la app** (Super Admin, protegidos con `apps/core/decorators.super_admin_required`):
+  Puntos (`apps/puntos`), Usuarios (`apps/accounts`) y Productos (`apps/catalogo`,
+  con códigos múltiples y precio por punto) — ya no dependen del Panel Django.
 - Fuera de MVP: facturación AFIP, clientes/cuenta corriente, productos por peso, variantes.

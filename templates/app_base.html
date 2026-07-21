@@ -22,9 +22,18 @@
 
       {% if user.es_super_admin %}
         <p class="px-3 pb-1 pt-4 font-mono text-[0.65rem] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Gestión</p>
-        {% include "partials/nav_item.html" with label="Puntos" pronto=True %}
-        {% include "partials/nav_item.html" with label="Usuarios" pronto=True %}
-        {% include "partials/nav_item.html" with label="Productos" pronto=True %}
+        <a href="{% url 'puntos:lista' %}" class="nav-link" {% if vn == 'puntos:lista' or vn == 'puntos:crear' or vn == 'puntos:editar' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/></svg>
+          Puntos
+        </a>
+        <a href="{% url 'accounts:usuarios_lista' %}" class="nav-link" {% if vn == 'accounts:usuarios_lista' or vn == 'accounts:usuario_crear' or vn == 'accounts:usuario_editar' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0M16 5.5a3 3 0 0 1 0 5.8M21 20a6 6 0 0 0-4-5.7"/></svg>
+          Usuarios
+        </a>
+        <a href="{% url 'catalogo:lista' %}" class="nav-link" {% if vn == 'catalogo:lista' or vn == 'catalogo:crear' or vn == 'catalogo:editar' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+          Productos
+        </a>
         <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
           Sumar stock

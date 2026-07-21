@@ -1,0 +1,57 @@
+{% extends "app_base.html" %}
+
+{% block title %}{{ titulo }} · SistemKios{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  {% if error %}
+    <div class="mb-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="card flex flex-col gap-4 p-6">
+    {% csrf_token %}
+    {% for field in form %}{% include "partials/field.html" with field=field %}{% endfor %}
+
+    {# Códigos de barras (uno o varios) #}
+    <div x-data="{ codigos: [{% for c in codigos %}'{{ c|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}] }">
+      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Códigos de barras</label>
+      <div class="flex flex-col gap-2">
+        <template x-for="(c, i) in codigos" :key="i">
+          <div class="flex gap-2">
+            <input name="codigos" x-model="codigos[i]" class="input font-mono" placeholder="Escaneá o escribí el código" inputmode="numeric" autocomplete="off">
+            <button type="button" class="btn btn-ghost !px-3 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="codigos.splice(i, 1)" x-show="codigos.length > 1" aria-label="Quitar">✕</button>
+          </div>
+        </template>
+      </div>
+      <button type="button" class="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-300" @click="codigos.push('')">+ Agregar otro código</button>
+    </div>
+
+    {# Precio de venta por punto #}
+    <div>
+      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Precio de venta por punto</label>
+      {% if precios %}
+        <div class="flex flex-col gap-2">
+          {% for pr in precios %}
+            <div class="flex items-center gap-3">
+              <span class="flex-1 text-sm">{{ pr.punto.nombre }}</span>
+              <div class="relative w-44">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
+                <input name="precio_{{ pr.punto.id }}" value="{{ pr.valor }}" type="number" step="0.01" min="0" class="input tnum !py-2 !pl-7" placeholder="0.00">
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Dejá vacío el precio en los puntos donde no se vende.</p>
+      {% else %}
+        <p class="text-sm text-zinc-400">Creá un punto para cargar precios.</p>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{% url 'catalogo:lista' %}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
