@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="mx-auto max-w-3xl"
-     x-data="ingresoStock({ puntoFijo: {{ punto_fijo.id|default:'null' }}, esSuperAdmin: {{ es_super_admin|yesno:'true,false' }} })">
+     x-data="ingresoStock({ puntoFijo: {{ punto_fijo.id|default:'null' }}, esSuperAdmin: {{ es_super_admin|yesno:'true,false' }}, depositoId: {{ deposito_id }} })">
 
   {# --- Contexto de punto --- #}
   {% if punto_fijo %}
@@ -15,17 +15,13 @@
     </div>
   {% elif es_super_admin %}
     <div class="mb-5">
-      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Punto</label>
-      {% if puntos %}
-        <select class="input max-w-xs" x-model="puntoId" @change="reset()">
-          <option value="">Elegí un punto…</option>
-          {% for p in puntos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
-        </select>
-      {% else %}
-        <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
-          Todavía no hay puntos. Creá uno en el <a href="/panel-django/puntos/punto/add/" class="font-medium underline">Panel Django</a>.
-        </p>
-      {% endif %}
+      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Ubicación</label>
+      <select class="input max-w-xs" x-model="puntoId" @change="reset()">
+        {% for u in ubicaciones %}
+          <option value="{{ u.id }}">{{ u.nombre }}{% if u.es_deposito %} · general{% endif %}</option>
+        {% endfor %}
+      </select>
+      <p class="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">Si no elegís un punto, la mercadería entra al <strong>Depósito</strong>.</p>
     </div>
   {% elif not punto_fijo %}
     <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
@@ -67,8 +63,23 @@
           </p>
         </div>
         <div class="text-right">
-          <p class="font-mono text-xs uppercase tracking-wider text-zinc-400">Stock actual</p>
+          <p class="font-mono text-xs uppercase tracking-wider text-zinc-400">Stock en <span x-text="producto.ubicacion"></span></p>
           <p class="tnum font-display text-3xl font-bold" x-text="producto.stock_actual"></p>
+          <p class="mt-0.5 text-xs text-zinc-400">General: <span class="tnum font-semibold text-zinc-500 dark:text-zinc-300" x-text="producto.total"></span></p>
+        </div>
+      </div>
+
+      {# Desglose por ubicación #}
+      <div class="mt-4">
+        <p class="mb-1.5 font-mono text-[0.65rem] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Stock por ubicación</p>
+        <div class="flex flex-wrap gap-1.5">
+          <template x-for="u in producto.desglose" :key="u.nombre">
+            <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
+                  :class="u.es_deposito ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300' : 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400'">
+              <span x-text="u.nombre"></span>
+              <span class="tnum font-semibold" x-text="u.cantidad"></span>
+            </span>
+          </template>
         </div>
       </div>
 
@@ -118,6 +129,7 @@
         <div>
           <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Precio de venta</label>
           <input x-model="nuevo.precio_venta" type="number" step="0.01" min="0" class="input tnum" placeholder="0.00">
+          <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Se aplica a todos los puntos de venta.</p>
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Costo (opcional)</label>
@@ -160,6 +172,7 @@
     return {
       esSuperAdmin: opts.esSuperAdmin,
       puntoFijo: opts.puntoFijo,
+      depositoId: opts.depositoId,
       puntoId: "",
       scan: "",
       estado: "idle",      // idle | encontrado | nuevo
@@ -274,7 +287,7 @@
       },
 
       init() {
-        {% if es_super_admin and puntos|length == 1 %}this.puntoId = "{{ puntos.0.id }}";{% endif %}
+        if (this.esSuperAdmin) this.puntoId = String(this.depositoId);
         this.focusScan();
       },
     };

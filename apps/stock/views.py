@@ -19,26 +19,42 @@ from .services import StockInsuficiente, ingresar_stock
 
 def _resolver_punto(request, punto_id=None):
     """
-    Devuelve el punto de trabajo. El vendedor siempre opera en el suyo;
-    el Super Admin elige uno (viene en el parámetro `punto`).
+    Devuelve la ubicación de trabajo. El vendedor siempre opera en su punto;
+    el Super Admin elige una (parámetro `punto`) y, si no elige, va al Depósito.
     """
     user = request.user
     if user.es_vendedor:
         return user.punto
     if punto_id:
         return Punto.objects.filter(pk=punto_id, activo=True).first()
-    return None
+    return Punto.get_deposito()
 
 
 def _payload_producto(producto, punto):
-    stock = StockPunto.objects.filter(producto=producto, punto=punto).first()
+    """
+    Datos del producto + su stock en la ubicación seleccionada, el total general
+    y el desglose por ubicación (Depósito y cada punto).
+    """
+    stock_map = {
+        s.punto_id: s.cantidad
+        for s in StockPunto.objects.filter(producto=producto)
+    }
+    total = sum(stock_map.values())
+    desglose = [
+        {"nombre": u.nombre, "es_deposito": u.es_deposito, "cantidad": stock_map.get(u.id, 0)}
+        for u in Punto.objects.filter(activo=True)  # Depósito primero (ordering del modelo)
+    ]
     precio = producto.precio_en(punto)
     return {
         "id": producto.id,
         "nombre": producto.nombre,
         "categoria": producto.categoria.nombre if producto.categoria else "",
         "codigo": producto.codigo_principal,
-        "stock_actual": stock.cantidad if stock else 0,
+        "ubicacion": punto.nombre,
+        "es_deposito": punto.es_deposito,
+        "stock_actual": stock_map.get(punto.id, 0),
+        "total": total,
+        "desglose": desglose,
         "precio": str(precio) if precio is not None else None,
     }
 
@@ -57,11 +73,13 @@ def _parse_decimal(valor, campo):
 def ingreso(request):
     """Pantalla de ingreso de mercadería con lector."""
     user = request.user
+    deposito = Punto.get_deposito()
     context = {
         "categorias": Categoria.objects.all(),
-        "puntos": Punto.objects.filter(activo=True),
+        "ubicaciones": Punto.objects.filter(activo=True),  # Depósito primero
         "punto_fijo": user.punto if user.es_vendedor else None,
         "es_super_admin": user.es_super_admin,
+        "deposito_id": deposito.id,
     }
     return render(request, "stock/ingreso.html", context)
 
@@ -148,7 +166,11 @@ def alta(request):
         )
         CodigoBarras.objects.create(producto=producto, codigo=codigo, principal=True)
         if precio_venta is not None:
-            PrecioPunto.objects.create(producto=producto, punto=punto, precio_venta=precio_venta)
+            # El precio se aplica a los puntos de venta (no al Depósito).
+            for pv in Punto.objects.filter(activo=True, es_deposito=False):
+                PrecioPunto.objects.update_or_create(
+                    producto=producto, punto=pv, defaults={"precio_venta": precio_venta}
+                )
         if cantidad > 0:
             ingresar_stock(
                 producto=producto,
