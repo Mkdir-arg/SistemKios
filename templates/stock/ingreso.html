@@ -13,17 +13,7 @@
       <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>{{ punto_fijo }}</span>
       Estás cargando mercadería en tu punto.
     </div>
-  {% elif es_super_admin %}
-    <div class="mb-5">
-      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Ubicación</label>
-      <select class="input max-w-xs" x-model="puntoId" @change="reset()">
-        {% for u in ubicaciones %}
-          <option value="{{ u.id }}">{{ u.nombre }}{% if u.es_deposito %} · general{% endif %}</option>
-        {% endfor %}
-      </select>
-      <p class="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">Si no elegís un punto, la mercadería entra al <strong>Depósito</strong>.</p>
-    </div>
-  {% elif not punto_fijo %}
+  {% elif not es_super_admin %}
     <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
       No tenés un punto asignado. Pedile al administrador que te asigne uno.
     </p>
