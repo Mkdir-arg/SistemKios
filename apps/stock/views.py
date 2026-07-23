@@ -221,12 +221,6 @@ def alta(request):
 
 
 @login_required
-def consulta(request):
-    """Pantalla de consulta de stock (tabla de productos por ubicación)."""
-    return render(request, "stock/consulta.html", {})
-
-
-@login_required
 def tabla(request):
     """Datos de la tabla de stock (para la consulta y el ingreso en vivo)."""
     ubicaciones, filas = _matriz_stock()

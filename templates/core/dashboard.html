@@ -53,12 +53,12 @@
       {% include "partials/module_card.html" with title="Puntos" desc="Tus locales a la calle, cada uno con su stock y su caja." icon="store" done=True url=url_puntos %}
       {% include "partials/module_card.html" with title="Usuarios" desc="Crear vendedores y asignarlos a un punto." icon="users" done=True url=url_usuarios %}
       {% include "partials/module_card.html" with title="Productos y precios" desc="Catálogo, códigos de barras y precio por punto." icon="box" done=True url=url_productos %}
-      {% include "partials/module_card.html" with title="Sumar stock" desc="Ingresá mercadería escaneando el código de barras." icon="scan" done=True url=url_ingreso_stock %}
+      {% include "partials/module_card.html" with title="Stock" desc="Ver el stock por ubicación y sumar mercadería con el lector." icon="box" done=True url=url_ingreso_stock %}
       {% include "partials/module_card.html" with title="Transferencias" desc="Mové stock entre puntos con el lector." icon="box" done=True url=url_transferencias %}
       {% include "partials/module_card.html" with title="Reportes" desc="Ventas por punto, medios de pago, stock bajo mínimo y horas." done=True url=url_reportes %}
     {% else %}
       {% include "partials/module_card.html" with title="Vender" desc="Escaneá productos, cobrá y descontá stock." icon="scan" accent=True done=True url=url_pos %}
-      {% include "partials/module_card.html" with title="Sumar stock" desc="Cargá mercadería escaneando el código de barras." icon="box" done=True url=url_ingreso_stock %}
+      {% include "partials/module_card.html" with title="Stock" desc="Ver tu stock y sumar mercadería con el lector." icon="box" done=True url=url_ingreso_stock %}
       {% include "partials/module_card.html" with title="Mi jornada" desc="Controlá tu caja y cerrá con arqueo." icon="clock" done=True url=url_jornada %}
     {% endif %}
   </div>

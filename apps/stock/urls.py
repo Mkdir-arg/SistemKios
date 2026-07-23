@@ -1,14 +1,17 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views
 
 app_name = "stock"
 
 urlpatterns = [
-    path("stock/", views.consulta, name="consulta"),
+    # Pantalla única de Stock: ver la tabla + sumar mercadería con el lector.
+    path("stock/", views.ingreso, name="ingreso"),
+    path("stock/buscar/", views.buscar, name="buscar"),
+    path("stock/agregar/", views.agregar, name="agregar"),
+    path("stock/alta/", views.alta, name="alta"),
     path("stock/tabla/", views.tabla, name="tabla"),
-    path("stock/ingreso/", views.ingreso, name="ingreso"),
-    path("stock/ingreso/buscar/", views.buscar, name="buscar"),
-    path("stock/ingreso/agregar/", views.agregar, name="agregar"),
-    path("stock/ingreso/alta/", views.alta, name="alta"),
+    # Compatibilidad con la URL anterior.
+    path("stock/ingreso/", RedirectView.as_view(pattern_name="stock:ingreso", permanent=False)),
 ]
