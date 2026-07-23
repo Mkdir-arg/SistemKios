@@ -4,14 +4,16 @@
 {% block page_title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-2xl">
+<div class="w-full">
   {% if error %}
     <div class="mb-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10">{{ error }}</div>
   {% endif %}
 
   <form method="post" class="card flex flex-col gap-4 p-6">
     {% csrf_token %}
-    {% for field in form %}{% include "partials/field.html" with field=field %}{% endfor %}
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% for field in form %}{% include "partials/field.html" with field=field %}{% endfor %}
+    </div>
 
     {# Códigos de barras (uno o varios) #}
     <div x-data="{ codigos: [{% for c in codigos %}'{{ c|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}] }">

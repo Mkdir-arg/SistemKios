@@ -4,7 +4,7 @@
 {% block page_title %}Stock{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-3xl"
+<div class="w-full"
      x-data="ingresoStock({ puntoFijo: {{ punto_fijo.id|default:'null' }}, esSuperAdmin: {{ es_super_admin|yesno:'true,false' }}, depositoId: {{ deposito_id }} })">
 
   {# --- Contexto de punto --- #}
