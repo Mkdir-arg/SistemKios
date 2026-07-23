@@ -33,6 +33,9 @@ class Producto(models.Model):
     alicuota_iva = models.DecimalField(
         "alícuota IVA (%)", max_digits=5, decimal_places=2, default=Decimal("21.00")
     )
+    imagen = models.ImageField(
+        "imagen", upload_to="productos/", blank=True, null=True
+    )
     activo = models.BooleanField("activo", default=True)
     creado = models.DateTimeField("creado", auto_now_add=True)
 
@@ -43,6 +46,10 @@ class Producto(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def imagen_url(self):
+        return self.imagen.url if self.imagen else ""
 
     @property
     def codigo_principal(self):

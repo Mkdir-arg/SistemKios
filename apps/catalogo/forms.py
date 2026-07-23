@@ -12,7 +12,7 @@ class ProductoForm(forms.ModelForm):
 
     class Meta:
         model = Producto
-        fields = ["nombre", "categoria", "nueva_categoria", "costo", "alicuota_iva", "activo"]
+        fields = ["nombre", "categoria", "nueva_categoria", "costo", "alicuota_iva", "imagen", "activo"]
         field_order = ["nombre", "categoria", "nueva_categoria", "costo", "alicuota_iva", "activo"]
         labels = {"alicuota_iva": "Alícuota IVA (%)"}
         widgets = {

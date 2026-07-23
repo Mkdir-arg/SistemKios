@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from PIL import Image
 
 from apps.core.decorators import super_admin_required
 from apps.puntos.models import Punto
@@ -17,8 +18,22 @@ def lista(request):
     return render(request, "catalogo/lista.html", {"productos": productos})
 
 
+def _resize_imagen(producto, max_lado=800):
+    """Reduce la imagen recién subida si es muy grande (evita fotos enormes)."""
+    if not producto.imagen:
+        return
+    try:
+        ruta = producto.imagen.path
+        img = Image.open(ruta)
+        if max(img.size) > max_lado:
+            img.thumbnail((max_lado, max_lado))
+            img.save(ruta)
+    except Exception:
+        pass
+
+
 def _guardar(request, producto=None):
-    form = ProductoForm(request.POST or None, instance=producto)
+    form = ProductoForm(request.POST or None, request.FILES or None, instance=producto)
     puntos = list(Punto.objects.filter(activo=True))
 
     # Valores para prefill (existentes o los recién enviados si hubo error).
@@ -77,6 +92,9 @@ def _guardar(request, producto=None):
                             )
                         else:
                             PrecioPunto.objects.filter(producto=prod, punto=p).delete()
+
+                if "imagen" in request.FILES:
+                    _resize_imagen(prod)
 
                 messages.success(request, "Producto guardado.")
                 return redirect("catalogo:lista")

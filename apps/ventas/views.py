@@ -54,6 +54,7 @@ def buscar(request):
                 "nombre": producto.nombre,
                 "precio": str(precio) if precio is not None else "0",
                 "stock": stock.cantidad if stock else 0,
+                "imagen": producto.imagen_url,
             },
         }
     )

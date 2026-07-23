@@ -9,10 +9,30 @@
     <div class="mb-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10">{{ error }}</div>
   {% endif %}
 
-  <form method="post" class="card flex flex-col gap-4 p-6">
+  <form method="post" enctype="multipart/form-data" class="card flex flex-col gap-4 p-6">
     {% csrf_token %}
     <div class="grid gap-4 sm:grid-cols-2">
-      {% for field in form %}{% include "partials/field.html" with field=field %}{% endfor %}
+      {% for field in form %}{% if field.name != 'imagen' %}{% include "partials/field.html" with field=field %}{% endif %}{% endfor %}
+    </div>
+
+    {# Imagen del producto #}
+    <div x-data="{ preview: '{{ form.instance.imagen_url|escapejs }}' }">
+      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Imagen</label>
+      <div class="flex items-center gap-4">
+        <div class="flex h-24 w-24 flex-none items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+          <template x-if="preview"><img :src="preview" class="h-full w-full object-cover" alt=""></template>
+          <template x-if="!preview">
+            <svg class="h-8 w-8 text-zinc-300 dark:text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+          </template>
+        </div>
+        <div>
+          <input type="file" name="imagen" accept="image/*"
+                 class="block max-w-full text-sm text-zinc-500 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 dark:text-zinc-400 dark:file:bg-brand-500/10 dark:file:text-brand-300"
+                 @change="const f = $event.target.files[0]; if (f) preview = URL.createObjectURL(f)">
+          <p class="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">JPG o PNG. Se redimensiona automáticamente.</p>
+          {% for e in form.imagen.errors %}<p class="mt-1 text-xs text-scan">{{ e }}</p>{% endfor %}
+        </div>
+      </div>
     </div>
 
     {# Códigos de barras (uno o varios) #}

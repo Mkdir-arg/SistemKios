@@ -50,6 +50,7 @@ def _payload_producto(producto, punto):
         "nombre": producto.nombre,
         "categoria": producto.categoria.nombre if producto.categoria else "",
         "codigo": producto.codigo_principal,
+        "imagen": producto.imagen_url,
         "ubicacion": punto.nombre,
         "es_deposito": punto.es_deposito,
         "stock_actual": stock_map.get(punto.id, 0),
@@ -96,6 +97,7 @@ def _matriz_stock():
                 "nombre": p.nombre,
                 "codigo": codigo,
                 "categoria": p.categoria.nombre if p.categoria else "",
+                "imagen": p.imagen_url,
                 "cantidades": cantidades,
                 "total": sum(cantidades),
             }

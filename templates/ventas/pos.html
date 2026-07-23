@@ -41,6 +41,7 @@
           <ul class="flex flex-col gap-2">
             <template x-for="(it, i) in items" :key="it.id">
               <li class="card flex items-center gap-3 p-3">
+                <template x-if="it.imagen"><img :src="it.imagen" class="h-10 w-10 flex-none rounded-lg border border-zinc-200 object-cover dark:border-zinc-800" alt=""></template>
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium" x-text="it.nombre"></p>
                   <div class="mt-0.5 flex items-center gap-2 text-xs text-zinc-400">
@@ -196,7 +197,7 @@
           if (found.cantidad >= found.stock) { this.error = "No hay más stock de " + prod.nombre + "."; return; }
           found.cantidad++;
         } else {
-          this.items.unshift({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: 1, stock: prod.stock });
+          this.items.unshift({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: 1, stock: prod.stock, imagen: prod.imagen });
         }
       },
       inc(i) { const it = this.items[i]; if (it.cantidad < it.stock) it.cantidad++; },

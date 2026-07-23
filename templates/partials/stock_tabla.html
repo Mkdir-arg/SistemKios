@@ -24,8 +24,13 @@
       <template x-for="f in filasFiltradas" :key="f.id">
         <tr class="border-b border-zinc-100 last:border-0 dark:border-zinc-800/60">
           <td class="px-4 py-2.5">
-            <p class="font-medium" x-text="f.nombre"></p>
-            <p class="font-mono text-xs text-zinc-400" x-text="f.categoria || f.codigo"></p>
+            <div class="flex items-center gap-3">
+              <template x-if="f.imagen"><img :src="f.imagen" class="h-9 w-9 flex-none rounded-lg border border-zinc-200 object-cover dark:border-zinc-800" alt=""></template>
+              <div class="min-w-0">
+                <p class="font-medium" x-text="f.nombre"></p>
+                <p class="font-mono text-xs text-zinc-400" x-text="f.categoria || f.codigo"></p>
+              </div>
+            </div>
           </td>
           <template x-for="(c, idx) in f.cantidades" :key="idx">
             <td class="tnum px-3 py-2.5 text-center"
