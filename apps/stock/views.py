@@ -66,6 +66,43 @@ def _parse_decimal(valor, campo):
         raise ValueError(f"El campo «{campo}» no es un número válido.")
 
 
+def _matriz_stock():
+    """
+    Devuelve (ubicaciones, filas) para la tabla de stock:
+    una fila por producto activo con su cantidad en cada ubicación y el total.
+    """
+    ubicaciones = list(Punto.objects.filter(activo=True))  # Depósito primero
+    por_prod = {}
+    for r in StockPunto.objects.filter(producto__activo=True).values(
+        "producto_id", "punto_id", "cantidad"
+    ):
+        por_prod.setdefault(r["producto_id"], {})[r["punto_id"]] = r["cantidad"]
+
+    filas = []
+    productos = (
+        Producto.objects.filter(activo=True)
+        .select_related("categoria")
+        .prefetch_related("codigos")
+        .order_by("nombre")
+    )
+    for p in productos:
+        codigos = list(p.codigos.all())
+        codigo = next((c.codigo for c in codigos if c.principal), codigos[0].codigo if codigos else "")
+        pm = por_prod.get(p.id, {})
+        cantidades = [pm.get(u.id, 0) for u in ubicaciones]
+        filas.append(
+            {
+                "id": p.id,
+                "nombre": p.nombre,
+                "codigo": codigo,
+                "categoria": p.categoria.nombre if p.categoria else "",
+                "cantidades": cantidades,
+                "total": sum(cantidades),
+            }
+        )
+    return ubicaciones, filas
+
+
 # --- Vistas -----------------------------------------------------------------
 
 @ensure_csrf_cookie
@@ -181,3 +218,23 @@ def alta(request):
             )
 
     return JsonResponse({"ok": True, "creado": True, "producto": _payload_producto(producto, punto)})
+
+
+@login_required
+def consulta(request):
+    """Pantalla de consulta de stock (tabla de productos por ubicación)."""
+    return render(request, "stock/consulta.html", {})
+
+
+@login_required
+def tabla(request):
+    """Datos de la tabla de stock (para la consulta y el ingreso en vivo)."""
+    ubicaciones, filas = _matriz_stock()
+    return JsonResponse(
+        {
+            "ubicaciones": [
+                {"nombre": u.nombre, "es_deposito": u.es_deposito} for u in ubicaciones
+            ],
+            "filas": filas,
+        }
+    )

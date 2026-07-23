@@ -165,6 +165,11 @@
       </ul>
     </div>
   </template>
+
+  {# --- Tabla de stock (se actualiza sola al cargar mercadería) --- #}
+  <div class="mt-10">
+    {% include "partials/stock_tabla.html" %}
+  </div>
 </div>
 
 <script>
@@ -182,9 +187,29 @@
       cantidad: 1,
       nuevo: { codigo: "", nombre: "", categoria: "", precio_venta: "", costo: "", cantidad: 0 },
       log: [],
+      tablaUbic: [], tablaFilas: [], filtro: "", soloConStock: true, tablaCargada: false,
 
       get puntoActual() {
         return this.puntoFijo || (this.puntoId ? parseInt(this.puntoId) : null);
+      },
+
+      get filasFiltradas() {
+        const q = this.filtro.trim().toLowerCase();
+        return this.tablaFilas.filter((f) => {
+          if (this.soloConStock && f.total <= 0) return false;
+          if (!q) return true;
+          return (f.nombre + " " + f.codigo + " " + f.categoria).toLowerCase().includes(q);
+        });
+      },
+
+      async cargarTabla() {
+        try {
+          const r = await fetch("{% url 'stock:tabla' %}");
+          const d = await r.json();
+          this.tablaUbic = d.ubicaciones;
+          this.tablaFilas = d.filas;
+        } catch (e) {}
+        this.tablaCargada = true;
       },
 
       _csrf() {
@@ -255,6 +280,7 @@
             cantidad: this.cantidad,
           });
           this.log.unshift({ ...data.producto, agregado: data.agregado, creado: false });
+          this.cargarTabla();
           this.reset();
         } catch (e) {
           this.error = e.message;
@@ -278,6 +304,7 @@
             cantidad: this.nuevo.cantidad,
           });
           this.log.unshift({ ...data.producto, agregado: data.producto.stock_actual, creado: true });
+          this.cargarTabla();
           this.reset();
         } catch (e) {
           this.error = e.message;
@@ -288,6 +315,7 @@
 
       init() {
         if (this.esSuperAdmin) this.puntoId = String(this.depositoId);
+        this.cargarTabla();
         this.focusScan();
       },
     };

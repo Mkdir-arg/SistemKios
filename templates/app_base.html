@@ -34,6 +34,10 @@
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
           Productos
         </a>
+        <a href="{% url 'stock:consulta' %}" class="nav-link" {% if vn == 'stock:consulta' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg>
+          Stock
+        </a>
         <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
           Sumar stock
@@ -59,6 +63,10 @@
         <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
           Sumar stock
+        </a>
+        <a href="{% url 'stock:consulta' %}" class="nav-link" {% if vn == 'stock:consulta' %}aria-current="page"{% endif %}>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg>
+          Ver stock
         </a>
         <a href="{% url 'caja:mi_jornada' %}" class="nav-link" {% if vn == 'caja:mi_jornada' %}aria-current="page"{% endif %}>
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
