@@ -71,8 +71,9 @@ def _guardar(request, producto=None):
                     if qs.exists():
                         error = f"El código {c} ya está usado por otro producto."
                         break
-            # Validación de precios y márgenes. El margen % se aplica sobre el
-            # precio base (costo + IVA): si no vino el precio, se calcula acá.
+            # Precios por punto: el precio final lo define el margen % sobre el
+            # precio base (costo + IVA). El precio que llega del form es solo el
+            # calculado en pantalla; acá se recalcula para no confiar en el navegador.
             precios_dec, margenes_dec = {}, {}
             if not error:
                 base = form.instance.precio_base
@@ -84,16 +85,20 @@ def _guardar(request, producto=None):
                     except InvalidOperation:
                         error = f"Margen inválido para {p.nombre}."
                         break
-                    if val:
+                    if margen is not None and base:
+                        precio = precio_con_margen(base, margen)
+                    elif val:
+                        # Producto sin costo: no hay margen posible, se respeta el precio ya cargado.
                         try:
                             precio = Decimal(val)
                         except InvalidOperation:
                             error = f"Precio inválido para {p.nombre}."
                             break
-                    elif margen is not None and base:
-                        precio = precio_con_margen(base, margen)
                     else:
                         continue  # Sin precio: no se vende en este punto.
+                    if precio < 0:
+                        error = f"El margen deja el precio en negativo en {p.nombre}."
+                        break
                     precios_dec[p.id] = precio
                     margenes_dec[p.id] = margen if margen is not None else margen_desde_precio(base, precio)
 

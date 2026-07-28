@@ -13,7 +13,7 @@ antigua, así el resultado es siempre el mismo para el mismo carrito.
 """
 from collections import defaultdict
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from apps.catalogo.models import PrecioPunto, Producto
 
@@ -141,9 +141,9 @@ def cotizar(*, punto, items, fecha=None):
     ignoran: el precio sale de `PrecioPunto` y los descuentos de las ofertas
     vigentes.
     """
-    pedido = _normalizar(items)
+    pedido, montos = _normalizar(items)
     productos = _traer_productos(pedido)
-    precios = _traer_precios(punto, productos)
+    precios = _traer_precios(punto, productos, montos)
     ofertas = _ofertas_candidatas(punto, pedido, fecha)
     veces, aportes = _resolver(ofertas, pedido, precios)
     return _armar(punto, pedido, productos, precios, ofertas, veces, aportes)
@@ -162,8 +162,13 @@ def ofertas_vigentes(punto, fecha=None):
 
 
 def _normalizar(items):
-    """{producto_id: cantidad} sumando repetidos y respetando el orden del carrito."""
+    """
+    {producto_id: cantidad} sumando repetidos y respetando el orden del carrito.
+    Devuelve además {producto_id: monto} para los servicios (precio variable que
+    ingresa el vendedor).
+    """
     pedido = {}
+    montos = {}
     for item in items or []:
         producto = item.get("producto")
         producto_id = producto.pk if producto is not None else item.get("producto_id")
@@ -177,9 +182,15 @@ def _normalizar(items):
         if cantidad <= 0:
             raise CotizacionError("Las cantidades tienen que ser mayores a 0.")
         pedido[producto_id] = pedido.get(producto_id, 0) + cantidad
+        monto = item.get("monto")
+        if monto not in (None, ""):
+            try:
+                montos[producto_id] = Decimal(str(monto))
+            except (InvalidOperation, TypeError, ValueError):
+                raise CotizacionError("Hay un servicio con un monto inválido.")
     if not pedido:
         raise CotizacionError("El carrito está vacío.")
-    return pedido
+    return pedido, montos
 
 
 def _traer_productos(pedido):
@@ -192,15 +203,31 @@ def _traer_productos(pedido):
     return productos
 
 
-def _traer_precios(punto, productos):
-    precios = dict(
+def _traer_precios(punto, productos, montos=None):
+    """
+    Precio de lista por producto en el punto.
+
+    Los servicios (recargas, SUBE) no usan `PrecioPunto`: su precio es el monto
+    que ingresó el vendedor + el costo del producto (la comisión / ganancia).
+    """
+    montos = montos or {}
+    precios = {}
+    normales = {}
+    for pk, p in productos.items():
+        if p.es_servicio:
+            precios[pk] = redondear(montos.get(pk, CERO) + (p.costo or CERO))
+        else:
+            normales[pk] = p
+
+    de_punto = dict(
         PrecioPunto.objects.filter(
-            punto=punto, producto_id__in=productos
+            punto=punto, producto_id__in=normales
         ).values_list("producto_id", "precio_venta")
     )
-    sin_precio = [p.nombre for pk, p in productos.items() if pk not in precios]
+    sin_precio = [p.nombre for pk, p in normales.items() if pk not in de_punto]
     if sin_precio:
         raise CotizacionError(f"«{sin_precio[0]}» no tiene precio en {punto}.")
+    precios.update(de_punto)
     return precios
 
 

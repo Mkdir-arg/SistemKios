@@ -15,8 +15,9 @@
           iva: '{{ form.alicuota_iva.value|default_if_none:0 }}',
           filas: [{% for pr in precios %}{ margen: '{{ pr.margen|escapejs }}', precio: '{{ pr.valor|escapejs }}' }{% if not forloop.last %}, {% endif %}{% endfor %}],
           get base() { return Math.round(Number(this.costo || 0) * (1 + Number(this.iva || 0) / 100) * 100) / 100 },
-          desdeMargen(f) { if (this.base > 0) f.precio = (this.base * (1 + Number(f.margen || 0) / 100)).toFixed(2) },
-          desdePrecio(f) { if (this.base > 0) f.margen = ((Number(f.precio || 0) / this.base - 1) * 100).toFixed(2) },
+          desdeMargen(f) {
+            f.precio = (f.margen === '' || this.base <= 0) ? '' : (this.base * (1 + Number(f.margen) / 100)).toFixed(2)
+          },
           recalcular() { this.filas.forEach(f => { if (f.margen !== '') this.desdeMargen(f) }) },
         }">
     {% csrf_token %}
@@ -78,21 +79,21 @@
               <div class="relative w-28">
                 <input name="margen_{{ pr.punto.id }}" type="number" step="0.01" class="input tnum !py-2 !pr-7" placeholder="0"
                        :value="filas[{{ forloop.counter0 }}].margen"
+                       :disabled="base <= 0"
                        @input="filas[{{ forloop.counter0 }}].margen = $el.value; desdeMargen(filas[{{ forloop.counter0 }}])">
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">%</span>
               </div>
-              <div class="relative w-44">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
-                <input name="precio_{{ pr.punto.id }}" type="number" step="0.01" min="0" class="input tnum !py-2 !pl-7" placeholder="0.00"
-                       :value="filas[{{ forloop.counter0 }}].precio"
-                       @input="filas[{{ forloop.counter0 }}].precio = $el.value; desdePrecio(filas[{{ forloop.counter0 }}])">
+              {# El precio final no se edita: lo define el margen. El valor viaja en el hidden. #}
+              <div class="tnum w-44 rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-2 text-[0.95rem] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-800/60 dark:text-zinc-300">
+                <span x-text="filas[{{ forloop.counter0 }}].precio ? '$' + filas[{{ forloop.counter0 }}].precio : '—'">{% if pr.valor %}${{ pr.valor }}{% else %}—{% endif %}</span>
               </div>
+              <input type="hidden" name="precio_{{ pr.punto.id }}" value="{{ pr.valor }}" :value="filas[{{ forloop.counter0 }}].precio">
             </div>
           {% endfor %}
         </div>
         <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-          Poné el margen y el precio final se calcula solo (base + %). También podés escribir el precio y se ajusta el margen.
-          Dejá vacío el precio en los puntos donde no se vende.
+          El precio final lo calcula el margen sobre el precio base. Dejá el margen vacío en los puntos donde no se vende.
+          <span x-show="base <= 0" class="text-scan">Cargá el costo del producto para poder calcular precios.</span>
         </p>
       {% else %}
         <p class="text-sm text-zinc-400">Creá un punto para cargar precios.</p>

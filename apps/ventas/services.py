@@ -1,10 +1,17 @@
-"""Registro de ventas: valida, descuenta stock (al confirmar) y guarda pagos."""
+"""
+Registro de ventas: cotiza en el servidor, descuenta stock (al confirmar) y
+guarda los pagos.
+
+El precio no llega del navegador: se resuelve con `ofertas.cotizar` a partir del
+precio del punto y las ofertas vigentes. Lo único que manda el POS es qué
+producto y cuántas unidades.
+"""
 from decimal import Decimal
 
 from django.db import transaction
 
 from apps.core.realtime import notificar_punto
-from apps.catalogo.models import Producto
+from apps.ofertas.services import cotizar
 from apps.stock.models import MovimientoStock
 from apps.stock.services import aplicar_movimiento
 
@@ -20,58 +27,50 @@ def registrar_venta(*, jornada, usuario, items, pagos):
     """
     Crea una venta confirmada.
 
-    items: [{producto_id, cantidad, precio_unitario}, ...]
+    items: [{producto_id, cantidad}, ...]
     pagos: [{medio, monto}, ...]  (puede haber varios -> pago mixto)
 
     El stock se descuenta acá, al confirmar (no en cada escaneo). Todo es
     atómico: si falta stock de un ítem, no se registra nada.
+
+    Puede levantar `CotizacionError` (carrito vacío, producto sin precio en el
+    punto, producto dado de baja) además de `VentaError`.
     """
     if not jornada or not jornada.abierta:
         raise VentaError("Necesitás una jornada abierta para vender.")
-    if not items:
-        raise VentaError("El carrito está vacío.")
 
-    # Total a partir de los ítems.
-    total = Decimal("0.00")
-    normalizados = []
-    for item in items:
-        producto = Producto.objects.filter(pk=item.get("producto_id"), activo=True).first()
-        if producto is None:
-            raise VentaError("Hay un producto inexistente en el carrito.")
-        cantidad = int(item.get("cantidad", 0))
-        precio = Decimal(str(item.get("precio_unitario", "0")))
-        if cantidad <= 0:
-            raise VentaError(f"Cantidad inválida para «{producto}».")
-        if precio < 0:
-            raise VentaError(f"Precio inválido para «{producto}».")
-        subtotal = precio * cantidad
-        total += subtotal
-        normalizados.append((producto, cantidad, precio, subtotal))
+    cotizacion = cotizar(punto=jornada.punto, items=items)
 
     # Validación de pagos: lo pagado no puede ser menor al total.
     pagado = sum((Decimal(str(p.get("monto", "0"))) for p in pagos), Decimal("0.00"))
-    if pagado < total:
+    if pagado < cotizacion.total:
         raise VentaError("Lo pagado es menor al total de la venta.")
 
     venta = Venta.objects.create(
-        punto=jornada.punto, vendedor=usuario, jornada=jornada, total=total
+        punto=jornada.punto,
+        vendedor=usuario,
+        jornada=jornada,
+        total=cotizacion.total,
+        descuento_total=cotizacion.descuento_total,
     )
 
-    for producto, cantidad, precio, subtotal in normalizados:
+    for linea in cotizacion.lineas:
         DetalleVenta.objects.create(
             venta=venta,
-            producto=producto,
-            cantidad=cantidad,
-            precio_unitario=precio,
-            subtotal=subtotal,
+            producto=linea.producto,
+            cantidad=linea.cantidad,
+            precio_unitario=linea.precio_lista,
+            descuento=linea.descuento,
+            oferta=linea.oferta_principal,
+            subtotal=linea.subtotal,
         )
         # Los servicios (recargas, SUBE) no llevan stock: no se descuenta nada.
-        if not producto.es_servicio:
+        if not linea.producto.es_servicio:
             aplicar_movimiento(
-                producto=producto,
+                producto=linea.producto,
                 punto=jornada.punto,
                 tipo=MovimientoStock.Tipo.VENTA,
-                delta=-cantidad,
+                delta=-linea.cantidad,
                 usuario=usuario,
                 nota=f"Venta #{venta.pk}",
             )
@@ -88,7 +87,7 @@ def registrar_venta(*, jornada, usuario, items, pagos):
             "venta",
             venta_id=venta.id,
             total=str(venta.total),
-            items=len(normalizados),
+            items=len(cotizacion.lineas),
             vendedor=usuario.get_short_name() or usuario.username,
         )
     )
