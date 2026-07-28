@@ -46,12 +46,22 @@
     </div>
 
     {# Códigos de barras (uno o varios) #}
-    <div x-data="{ codigos: [{% for c in codigos %}'{{ c|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}] }">
+    <div x-data="{
+           codigos: [{% for c in codigos %}'{{ c|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+           enter(i) {
+             // El lector manda Enter al terminar: NO se envía el formulario (no guarda).
+             // Si es la última fila y ya tiene código, abre otra para escanear el siguiente.
+             if (i === this.codigos.length - 1 && (this.codigos[i] || '').trim() !== '') {
+               this.codigos.push('');
+               this.$nextTick(() => { const els = this.$refs.cods.querySelectorAll('input[name=codigos]'); els[els.length - 1].focus(); });
+             }
+           }
+         }">
       <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Códigos de barras</label>
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2" x-ref="cods">
         <template x-for="(c, i) in codigos" :key="i">
           <div class="flex gap-2">
-            <input name="codigos" x-model="codigos[i]" class="input font-mono" placeholder="Escaneá o escribí el código" inputmode="numeric" autocomplete="off">
+            <input name="codigos" x-model="codigos[i]" @keydown.enter.prevent="enter(i)" class="input font-mono" placeholder="Escaneá o escribí el código" inputmode="numeric" autocomplete="off">
             <button type="button" class="btn btn-ghost !px-3 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="codigos.splice(i, 1)" x-show="codigos.length > 1" aria-label="Quitar">✕</button>
           </div>
         </template>
