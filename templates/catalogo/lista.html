@@ -34,7 +34,17 @@
               {% if p.activo %}<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">Activo</span>
               {% else %}<span class="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800">Inactivo</span>{% endif %}
             </td>
-            <td class="px-4 py-2.5 text-right"><a href="{% url 'catalogo:editar' p.pk %}" class="font-medium text-brand-600 hover:underline dark:text-brand-300">Editar</a></td>
+            <td class="px-4 py-2.5">
+              <div class="flex items-center justify-end gap-4">
+                <a href="{% url 'catalogo:editar' p.pk %}" class="font-medium text-brand-600 hover:underline dark:text-brand-300">Editar</a>
+                <form method="post" action="{% url 'catalogo:eliminar' p.pk %}" onsubmit="return confirm('¿Eliminar «{{ p.nombre|escapejs }}»?\n\nSi tiene ventas o movimientos, se marcará como inactivo en vez de borrarse.')">
+                  {% csrf_token %}
+                  <button type="submit" class="text-zinc-400 transition hover:text-scan" title="Eliminar" aria-label="Eliminar">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>
+                  </button>
+                </form>
+              </div>
+            </td>
           </tr>
         {% empty %}
           <tr><td colspan="5" class="px-4 py-8 text-center text-zinc-400">Todavía no hay productos. También podés crearlos escaneando en “Sumar stock”.</td></tr>

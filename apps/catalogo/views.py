@@ -2,7 +2,9 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 from PIL import Image
 
 from apps.core.decorators import super_admin_required
@@ -151,3 +153,24 @@ def crear(request):
 @super_admin_required
 def editar(request, pk):
     return _guardar(request, get_object_or_404(Producto, pk=pk))
+
+
+@super_admin_required
+@require_POST
+def eliminar(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    nombre = producto.nombre
+    try:
+        producto.delete()
+        messages.success(request, f"«{nombre}» eliminado.")
+    except ProtectedError:
+        # Tiene ventas o movimientos: no se puede borrar sin romper el historial.
+        # Se desactiva (deja de aparecer en ventas, stock y catálogo activo).
+        producto.activo = False
+        producto.save(update_fields=["activo"])
+        messages.warning(
+            request,
+            f"«{nombre}» tiene ventas o movimientos registrados, así que no se puede "
+            "borrar. Lo marqué como inactivo: deja de aparecer al vender y en el stock.",
+        )
+    return redirect("catalogo:lista")
