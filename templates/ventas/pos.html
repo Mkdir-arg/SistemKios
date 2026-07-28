@@ -45,7 +45,17 @@
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium" x-text="it.nombre"></p>
                   <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400">
-                    <span class="tnum" x-text="'$' + fmt(it.precio_lista)"></span>
+                    <template x-if="!it.es_servicio">
+                      <span class="tnum" x-text="'$' + fmt(it.precio_lista)"></span>
+                    </template>
+                    <template x-if="it.es_servicio">
+                      <span class="flex items-center gap-1">
+                        <span>$</span>
+                        <input x-model.number="it.monto" @input="montoCambio()" type="number" step="0.01" min="0" placeholder="monto"
+                               class="input tnum !w-24 !px-2 !py-1 !text-xs">
+                        <span x-show="it.comision > 0" class="whitespace-nowrap">+ $<span x-text="fmt(it.comision)"></span></span>
+                      </span>
+                    </template>
                     <template x-for="of in ofertasDe(it)" :key="of.id">
                       <span class="rounded bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
                             :title="of.nombre" x-text="of.etiqueta"></span>
@@ -166,9 +176,14 @@
       scan: "",
       items: [],
       cargando: false,
+      cotizando: false,
+      stale: false,
       error: "",
       cobrando: false,
       ultima: null,
+      cot: { total: 0, total_lista: 0, descuento_total: 0 },
+      _seq: 0,
+      _t: null,
       medios: [
         { key: "efectivo", label: "Efectivo" },
         { key: "tarjeta", label: "Tarjeta" },
@@ -176,12 +191,18 @@
       ],
       pagos: { efectivo: "", tarjeta: "", transferencia: "" },
 
-      unit(it) { return it.es_servicio ? (Number(it.monto) || 0) + (Number(it.comision) || 0) : (Number(it.precio) || 0); },
-      get total() { return this.items.reduce((s, it) => s + this.unit(it) * it.cantidad, 0); },
+      // Totales: los define el servidor (cotizar). El navegador nunca fija el precio.
+      get total() { return this.cot.total; },
+      get totalLista() { return this.cot.total_lista; },
+      get descuentoTotal() { return this.cot.descuento_total; },
       get cantidadTotal() { return this.items.reduce((s, it) => s + it.cantidad, 0); },
       get pagado() { return this.medios.reduce((s, m) => s + (Number(this.pagos[m.key]) || 0), 0); },
       get faltante() { return Math.max(0, this.total - this.pagado); },
       get vuelto() { return Math.max(0, this.pagado - this.total); },
+
+      ofertasDe(it) { return it.ofertas || []; },
+      subtotalDe(it) { return it.subtotal != null ? it.subtotal : (Number(it.precio_lista) || 0) * it.cantidad; },
+      descuentoDe(it) { return it.descuento || 0; },
 
       fmt(n) { return Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
       _csrf() { const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ""; },
@@ -192,6 +213,61 @@
         return data;
       },
       focusScan() { this.$nextTick(() => this.$refs.scan && this.$refs.scan.focus()); },
+
+      _payloadItems() {
+        return this.items.map((it) => {
+          const item = { producto_id: it.id, cantidad: it.cantidad };
+          if (it.es_servicio) item.monto = Number(it.monto) || 0;  // servicios: monto variable
+          return item;
+        });
+      },
+
+      // Recotiza en el servidor: precios del punto + ofertas + servicios (monto + comisión).
+      async recotizar() {
+        this.stale = true;
+        this.error = "";
+        if (!this.items.length) {
+          this.cot = { total: 0, total_lista: 0, descuento_total: 0 };
+          this.stale = false;
+          return;
+        }
+        const seq = ++this._seq;
+        this.cotizando = true;
+        try {
+          const data = await this._post("{% url 'ventas:cotizar' %}", { items: this._payloadItems() });
+          if (seq !== this._seq) return;  // ya salió una cotización más nueva
+          this._aplicar(data);
+          this.stale = false;
+        } catch (e) {
+          if (seq !== this._seq) return;
+          this.error = e.message;  // queda stale => Cobrar deshabilitado
+        } finally {
+          if (seq === this._seq) this.cotizando = false;
+        }
+      },
+      _aplicar(data) {
+        const porId = {};
+        (data.lineas || []).forEach((l) => { porId[l.producto_id] = l; });
+        this.items.forEach((it) => {
+          const l = porId[it.id];
+          if (!l) return;
+          it.precio_lista = Number(l.precio_lista);
+          it.subtotal = Number(l.subtotal);
+          it.descuento = Number(l.descuento);
+          it.ofertas = l.ofertas || [];
+        });
+        this.cot = {
+          total: Number(data.total) || 0,
+          total_lista: Number(data.total_lista) || 0,
+          descuento_total: Number(data.descuento_total) || 0,
+        };
+      },
+      // Al tipear el monto de un servicio: marca stale ya y recotiza con debounce.
+      montoCambio() {
+        this.stale = true;
+        clearTimeout(this._t);
+        this._t = setTimeout(() => this.recotizar(), 400);
+      },
 
       async buscar() {
         const codigo = this.scan.trim();
@@ -215,16 +291,22 @@
           if (!found.es_servicio && found.cantidad >= found.stock) { this.error = "No hay más stock de " + prod.nombre + "."; return; }
           found.cantidad++;
         } else {
-          this.items.unshift({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: 1, stock: prod.stock, es_servicio: prod.es_servicio, comision: Number(prod.comision) || 0, monto: 0, imagen: prod.imagen });
+          this.items.unshift({
+            id: prod.id, nombre: prod.nombre, imagen: prod.imagen,
+            es_servicio: prod.es_servicio, stock: prod.stock,
+            comision: Number(prod.comision) || 0, monto: 0, cantidad: 1,
+            precio_lista: Number(prod.precio) || 0, subtotal: 0, descuento: 0, ofertas: [],
+          });
         }
+        this.recotizar();
       },
-      inc(i) { const it = this.items[i]; if (it.es_servicio || it.cantidad < it.stock) it.cantidad++; },
-      dec(i) { const it = this.items[i]; if (it.cantidad > 1) it.cantidad--; else this.quitar(i); },
-      quitar(i) { this.items.splice(i, 1); },
-      vaciar() { this.items = []; this.error = ""; this.focusScan(); },
+      inc(i) { const it = this.items[i]; if (it.es_servicio || it.cantidad < it.stock) { it.cantidad++; this.recotizar(); } },
+      dec(i) { const it = this.items[i]; if (it.cantidad > 1) { it.cantidad--; this.recotizar(); } else { this.quitar(i); } },
+      quitar(i) { this.items.splice(i, 1); this.recotizar(); },
+      vaciar() { this.items = []; this.error = ""; this.cot = { total: 0, total_lista: 0, descuento_total: 0 }; this.stale = false; this.focusScan(); },
 
       abrirCobro() {
-        if (!this.items.length) return;
+        if (!this.items.length || this.stale || this.cotizando) return;
         this.error = "";
         this.pagos = { efectivo: "", tarjeta: "", transferencia: "" };
         this.cobrando = true;
@@ -237,11 +319,12 @@
         this.error = "";
         try {
           const data = await this._post("{% url 'ventas:confirmar' %}", {
-            items: this.items.map((it) => ({ producto_id: it.id, cantidad: it.cantidad, precio_unitario: this.unit(it) })),
+            items: this._payloadItems(),
             pagos: this.medios.map((m) => ({ medio: m.key, monto: Number(this.pagos[m.key]) || 0 })).filter((p) => p.monto > 0),
           });
           this.ultima = { id: data.venta_id, total: data.total };
           this.items = [];
+          this.cot = { total: 0, total_lista: 0, descuento_total: 0 };
           this.cobrando = false;
           this.focusScan();
         } catch (e) { this.error = e.message; }
@@ -254,7 +337,10 @@
           window.SKRealtime.connect(this.puntoId, (ev) => {
             if (ev.tipo === "stock") {
               const it = this.items.find((x) => x.id === ev.producto_id);
-              if (it) { it.stock = ev.cantidad; if (it.cantidad > it.stock) it.cantidad = Math.max(1, it.stock); }
+              if (it && !it.es_servicio) {
+                it.stock = ev.cantidad;
+                if (it.cantidad > it.stock) { it.cantidad = Math.max(1, it.stock); this.recotizar(); }
+              }
             }
           });
         }
