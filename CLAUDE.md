@@ -22,6 +22,10 @@ docker compose up --build         # migra, crea Super Admin y levanta en :8000
 
 Login en `/ingresar/`. Panel de Django en `/panel-django/`.
 
+```sh
+docker compose exec web python manage.py test apps.ofertas   # tests (por ahora, solo ofertas)
+```
+
 ## Convenciones
 
 - Apps en `apps/` con `name = "apps.<x>"` y `label = "<x>"`.
@@ -53,5 +57,12 @@ Login en `/ingresar/`. Panel de Django en `/panel-django/`.
 - **MVP COMPLETO** (fases 0-4). Todo corre con `docker compose up` y está commiteado.
 - **ABM en la app** (Super Admin, protegidos con `apps/core/decorators.super_admin_required`):
   Puntos (`apps/puntos`), Usuarios (`apps/accounts`) y Productos (`apps/catalogo`,
-  con códigos múltiples y precio por punto) — ya no dependen del Panel Django.
+  con códigos múltiples y precio por punto: se carga un **margen %** sobre el precio base
+  = costo + IVA, y el precio final se calcula solo) — ya no dependen del Panel Django.
+- **Fase 5 (en curso):** app `ofertas` — `Oferta`/`OfertaItem` (precio especial, %, precio por
+  conjunto tipo 2x$1500 y combos, 3x2), vigencia por fechas y alcance por punto. El motor
+  `apps/ofertas/services.cotizar` es la **única fuente de verdad del precio**: ante ofertas
+  solapadas aplica la más conveniente para el cliente y nunca sube el precio de lista.
+  Hecho: modelos + motor + tests. Falta: POS cotizando en el server (hoy el precio lo manda
+  el navegador y `registrar_venta` lo cree), ABM de ofertas y reporte de impacto.
 - Fuera de MVP: facturación AFIP, clientes/cuenta corriente, productos por peso, variantes.

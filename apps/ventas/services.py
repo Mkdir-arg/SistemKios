@@ -65,15 +65,16 @@ def registrar_venta(*, jornada, usuario, items, pagos):
             precio_unitario=precio,
             subtotal=subtotal,
         )
-        # Descuenta stock del punto (lanza StockInsuficiente si no alcanza).
-        aplicar_movimiento(
-            producto=producto,
-            punto=jornada.punto,
-            tipo=MovimientoStock.Tipo.VENTA,
-            delta=-cantidad,
-            usuario=usuario,
-            nota=f"Venta #{venta.pk}",
-        )
+        # Los servicios (recargas, SUBE) no llevan stock: no se descuenta nada.
+        if not producto.es_servicio:
+            aplicar_movimiento(
+                producto=producto,
+                punto=jornada.punto,
+                tipo=MovimientoStock.Tipo.VENTA,
+                delta=-cantidad,
+                usuario=usuario,
+                nota=f"Venta #{venta.pk}",
+            )
 
     for p in pagos:
         monto = Decimal(str(p.get("monto", "0")))

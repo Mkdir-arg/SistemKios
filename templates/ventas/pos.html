@@ -48,7 +48,8 @@
                     <span>$</span>
                     <input x-model.number="it.precio" type="number" step="0.01" min="0"
                            class="input tnum !w-24 !px-2 !py-1 !text-xs">
-                    <span x-show="it.cantidad > it.stock" class="text-amber-500">stock: <span x-text="it.stock"></span></span>
+                    <span x-show="!it.es_servicio && it.cantidad > it.stock" class="text-amber-500">stock: <span x-text="it.stock"></span></span>
+                    <span x-show="it.es_servicio" class="rounded bg-brand-50 px-1.5 font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">servicio</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-1.5">
@@ -191,16 +192,16 @@
       },
 
       agregar(prod) {
-        if (prod.stock <= 0) { this.error = prod.nombre + " no tiene stock."; return; }
+        if (!prod.es_servicio && prod.stock <= 0) { this.error = prod.nombre + " no tiene stock."; return; }
         const found = this.items.find((it) => it.id === prod.id);
         if (found) {
-          if (found.cantidad >= found.stock) { this.error = "No hay más stock de " + prod.nombre + "."; return; }
+          if (!found.es_servicio && found.cantidad >= found.stock) { this.error = "No hay más stock de " + prod.nombre + "."; return; }
           found.cantidad++;
         } else {
-          this.items.unshift({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: 1, stock: prod.stock, imagen: prod.imagen });
+          this.items.unshift({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: 1, stock: prod.stock, es_servicio: prod.es_servicio, imagen: prod.imagen });
         }
       },
-      inc(i) { const it = this.items[i]; if (it.cantidad < it.stock) it.cantidad++; },
+      inc(i) { const it = this.items[i]; if (it.es_servicio || it.cantidad < it.stock) it.cantidad++; },
       dec(i) { const it = this.items[i]; if (it.cantidad > 1) it.cantidad--; else this.quitar(i); },
       quitar(i) { this.items.splice(i, 1); },
       vaciar() { this.items = []; this.error = ""; this.focusScan(); },

@@ -9,7 +9,16 @@
     <div class="mb-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10">{{ error }}</div>
   {% endif %}
 
-  <form method="post" enctype="multipart/form-data" class="card flex flex-col gap-4 p-6">
+  <form method="post" enctype="multipart/form-data" class="card flex flex-col gap-4 p-6"
+        x-data="{
+          costo: '{{ form.costo.value|default_if_none:0 }}',
+          iva: '{{ form.alicuota_iva.value|default_if_none:0 }}',
+          filas: [{% for pr in precios %}{ margen: '{{ pr.margen|escapejs }}', precio: '{{ pr.valor|escapejs }}' }{% if not forloop.last %}, {% endif %}{% endfor %}],
+          get base() { return Math.round(Number(this.costo || 0) * (1 + Number(this.iva || 0) / 100) * 100) / 100 },
+          desdeMargen(f) { if (this.base > 0) f.precio = (this.base * (1 + Number(f.margen || 0) / 100)).toFixed(2) },
+          desdePrecio(f) { if (this.base > 0) f.margen = ((Number(f.precio || 0) / this.base - 1) * 100).toFixed(2) },
+          recalcular() { this.filas.forEach(f => { if (f.margen !== '') this.desdeMargen(f) }) },
+        }">
     {% csrf_token %}
     <div class="grid gap-4 sm:grid-cols-2">
       {% for field in form %}{% if field.name != 'imagen' %}{% include "partials/field.html" with field=field %}{% endif %}{% endfor %}
@@ -49,22 +58,42 @@
       <button type="button" class="mt-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-300" @click="codigos.push('')">+ Agregar otro código</button>
     </div>
 
-    {# Precio de venta por punto #}
+    {# Precio de venta por punto: precio base (costo + IVA) + un margen % por punto #}
     <div>
       <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Precio de venta por punto</label>
       {% if precios %}
+        <p class="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+          Precio base (costo + IVA):
+          <span class="tnum font-medium text-zinc-700 dark:text-zinc-200">$<span x-text="base.toFixed(2)"></span></span>
+        </p>
         <div class="flex flex-col gap-2">
+          <div class="hidden items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500 sm:flex">
+            <span class="flex-1">Punto</span>
+            <span class="w-28">Margen %</span>
+            <span class="w-44">Precio final</span>
+          </div>
           {% for pr in precios %}
             <div class="flex items-center gap-3">
               <span class="flex-1 text-sm">{{ pr.punto.nombre }}</span>
+              <div class="relative w-28">
+                <input name="margen_{{ pr.punto.id }}" type="number" step="0.01" class="input tnum !py-2 !pr-7" placeholder="0"
+                       :value="filas[{{ forloop.counter0 }}].margen"
+                       @input="filas[{{ forloop.counter0 }}].margen = $el.value; desdeMargen(filas[{{ forloop.counter0 }}])">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">%</span>
+              </div>
               <div class="relative w-44">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
-                <input name="precio_{{ pr.punto.id }}" value="{{ pr.valor }}" type="number" step="0.01" min="0" class="input tnum !py-2 !pl-7" placeholder="0.00">
+                <input name="precio_{{ pr.punto.id }}" type="number" step="0.01" min="0" class="input tnum !py-2 !pl-7" placeholder="0.00"
+                       :value="filas[{{ forloop.counter0 }}].precio"
+                       @input="filas[{{ forloop.counter0 }}].precio = $el.value; desdePrecio(filas[{{ forloop.counter0 }}])">
               </div>
             </div>
           {% endfor %}
         </div>
-        <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Dejá vacío el precio en los puntos donde no se vende.</p>
+        <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+          Poné el margen y el precio final se calcula solo (base + %). También podés escribir el precio y se ajusta el margen.
+          Dejá vacío el precio en los puntos donde no se vende.
+        </p>
       {% else %}
         <p class="text-sm text-zinc-400">Creá un punto para cargar precios.</p>
       {% endif %}

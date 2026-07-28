@@ -12,15 +12,31 @@ class ProductoForm(forms.ModelForm):
 
     class Meta:
         model = Producto
-        fields = ["nombre", "categoria", "nueva_categoria", "costo", "alicuota_iva", "imagen", "activo"]
-        field_order = ["nombre", "categoria", "nueva_categoria", "costo", "alicuota_iva", "activo"]
+        fields = ["nombre", "categoria", "nueva_categoria", "costo", "alicuota_iva", "imagen", "es_servicio", "activo"]
+        field_order = ["nombre", "categoria", "nueva_categoria", "costo", "alicuota_iva", "es_servicio", "activo"]
         labels = {"alicuota_iva": "Alícuota IVA (%)"}
         widgets = {
             "nombre": forms.TextInput(attrs={"class": "input", "placeholder": "Ej: Coca-Cola 500ml"}),
             "categoria": forms.Select(attrs={"class": "input"}),
-            "costo": forms.NumberInput(attrs={"class": "input tnum", "step": "0.01", "min": "0"}),
-            "alicuota_iva": forms.NumberInput(attrs={"class": "input tnum", "step": "0.01", "min": "0"}),
+            # El @input avisa al bloque de precios por punto (Alpine) para recalcular la base.
+            "costo": forms.NumberInput(
+                attrs={
+                    "class": "input tnum",
+                    "step": "0.01",
+                    "min": "0",
+                    "@input": "costo = $el.value; recalcular()",
+                }
+            ),
+            "alicuota_iva": forms.NumberInput(
+                attrs={
+                    "class": "input tnum",
+                    "step": "0.01",
+                    "min": "0",
+                    "@input": "iva = $el.value; recalcular()",
+                }
+            ),
             "activo": forms.CheckboxInput(attrs={"class": "h-4 w-4 rounded border-zinc-300 text-brand-600"}),
+            "es_servicio": forms.CheckboxInput(attrs={"class": "h-4 w-4 rounded border-zinc-300 text-brand-600"}),
         }
 
     def __init__(self, *args, **kwargs):

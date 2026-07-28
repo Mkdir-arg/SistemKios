@@ -24,7 +24,10 @@
       <tbody>
         {% for p in productos %}
           <tr class="border-b border-zinc-100 last:border-0 dark:border-zinc-800/60">
-            <td class="px-4 py-2.5 font-medium">{{ p.nombre }}</td>
+            <td class="px-4 py-2.5 font-medium">
+              {{ p.nombre }}
+              {% if p.es_servicio %}<span class="ml-1 rounded-md bg-brand-50 px-1.5 py-0.5 text-[0.65rem] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">Servicio</span>{% endif %}
+            </td>
             <td class="px-4 py-2.5 text-zinc-500 dark:text-zinc-400">{{ p.categoria|default:"—" }}</td>
             <td class="px-4 py-2.5 font-mono text-xs text-zinc-400">{{ p.codigo_principal|default:"—" }}</td>
             <td class="px-4 py-2.5 text-center">

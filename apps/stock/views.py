@@ -8,7 +8,13 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from apps.catalogo.models import Categoria, CodigoBarras, PrecioPunto, Producto
+from apps.catalogo.models import (
+    Categoria,
+    CodigoBarras,
+    PrecioPunto,
+    Producto,
+    margen_desde_precio,
+)
 from apps.puntos.models import Punto
 
 from .models import StockPunto
@@ -81,7 +87,7 @@ def _matriz_stock():
 
     filas = []
     productos = (
-        Producto.objects.filter(activo=True)
+        Producto.objects.filter(activo=True, es_servicio=False)  # los servicios no llevan stock
         .select_related("categoria")
         .prefetch_related("codigos")
         .order_by("nombre")
@@ -137,6 +143,8 @@ def buscar(request):
     cb = CodigoBarras.objects.select_related("producto", "producto__categoria").filter(codigo=codigo).first()
     if cb is None:
         return JsonResponse({"found": False, "codigo": codigo})
+    if cb.producto.es_servicio:
+        return JsonResponse({"found": True, "servicio": True, "nombre": cb.producto.nombre})
     return JsonResponse({"found": True, "producto": _payload_producto(cb.producto, punto)})
 
 
@@ -206,9 +214,12 @@ def alta(request):
         CodigoBarras.objects.create(producto=producto, codigo=codigo, principal=True)
         if precio_venta is not None:
             # El precio se aplica a los puntos de venta (no al Depósito).
+            margen = margen_desde_precio(producto.precio_base, precio_venta)
             for pv in Punto.objects.filter(activo=True, es_deposito=False):
                 PrecioPunto.objects.update_or_create(
-                    producto=producto, punto=pv, defaults={"precio_venta": precio_venta}
+                    producto=producto,
+                    punto=pv,
+                    defaults={"precio_venta": precio_venta, "margen": margen},
                 )
         if cantidad > 0:
             ingresar_stock(

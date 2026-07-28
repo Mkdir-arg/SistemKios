@@ -1,6 +1,21 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import models
+
+CENTAVO = Decimal("0.01")
+CIEN = Decimal("100")
+
+
+def precio_con_margen(base, margen):
+    """Precio final = precio base + `margen` %."""
+    return (base * (Decimal("1") + Decimal(margen) / CIEN)).quantize(CENTAVO, rounding=ROUND_HALF_UP)
+
+
+def margen_desde_precio(base, precio):
+    """Margen % que hay que aplicarle al `base` para llegar a `precio`."""
+    if not base:
+        return None
+    return ((Decimal(precio) / base - Decimal("1")) * CIEN).quantize(CENTAVO, rounding=ROUND_HALF_UP)
 
 
 class Categoria(models.Model):
@@ -36,6 +51,11 @@ class Producto(models.Model):
     imagen = models.ImageField(
         "imagen", upload_to="productos/", blank=True, null=True
     )
+    es_servicio = models.BooleanField(
+        "es un servicio (sin stock)",
+        default=False,
+        help_text="Recargas, SUBE y similares: se cobran pero no llevan stock.",
+    )
     activo = models.BooleanField("activo", default=True)
     creado = models.DateTimeField("creado", auto_now_add=True)
 
@@ -50,6 +70,13 @@ class Producto(models.Model):
     @property
     def imagen_url(self):
         return self.imagen.url if self.imagen else ""
+
+    @property
+    def precio_base(self):
+        """Costo + IVA. Es la base sobre la que cada punto aplica su margen %."""
+        iva = self.alicuota_iva or Decimal("0")
+        costo = self.costo or Decimal("0")
+        return (costo * (Decimal("1") + iva / CIEN)).quantize(CENTAVO, rounding=ROUND_HALF_UP)
 
     @property
     def codigo_principal(self):
@@ -88,6 +115,14 @@ class PrecioPunto(models.Model):
     )
     punto = models.ForeignKey(
         "puntos.Punto", verbose_name="punto", on_delete=models.CASCADE, related_name="precios"
+    )
+    margen = models.DecimalField(
+        "margen (%)",
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Porcentaje que se aplica sobre el precio base (costo + IVA) del producto.",
     )
     precio_venta = models.DecimalField("precio de venta", max_digits=12, decimal_places=2)
     actualizado = models.DateTimeField("actualizado", auto_now=True)
