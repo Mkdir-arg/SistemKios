@@ -40,7 +40,7 @@ docker compose up --build         # migra, crea Super Admin y levanta en :8000
 Login en `/ingresar/`. Panel de Django en `/panel-django/`.
 
 ```sh
-docker compose exec web python manage.py test apps.ofertas   # tests (por ahora, solo ofertas)
+docker compose exec web python manage.py test        # tests: apps.ofertas y apps.stock
 ```
 
 ## Convenciones
@@ -71,6 +71,10 @@ docker compose exec web python manage.py test apps.ofertas   # tests (por ahora,
 - **Fase 4 (hecha):** app `transferencias` (Transferencia/TransferenciaItem, `crear_transferencia`
   atómico salida/entrada); reportes en `apps/core` (ventas por punto/medio, stock bajo mínimo,
   horas por vendedor).
+- **Stock, una sola pantalla:** `/stock/` hace todo (ver la tabla, sumar mercadería, alta rápida
+  y **transferir**, en dos pestañas sobre la misma ubicación de trabajo). La app `transferencias`
+  conserva modelo, servicio e historial, pero ya no tiene pantalla ni ítem de menú: su vista es
+  `stock.views.transferir` y `/transferencias/nueva/` quedó como redirect.
 - **MVP COMPLETO** (fases 0-4). Todo corre con `docker compose up` y está commiteado.
 - **ABM en la app** (Super Admin, protegidos con `apps/core/decorators.super_admin_required`):
   Puntos (`apps/puntos`), Usuarios (`apps/accounts`) y Productos (`apps/catalogo`,
