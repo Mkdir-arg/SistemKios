@@ -7,6 +7,23 @@ Contexto para trabajar en este repo.
 Punto de venta + control de stock **multi-punto** (un "punto" = un local a la calle),
 operado con **lector de código de barras** y con datos **en tiempo real**. En la nube.
 
+## Requerimientos — leer antes de tocar algo
+
+El mapa funcional completo está en **[docs/requerimientos/](docs/requerimientos/README.md)**:
+una regla de negocio por bloque, con su estado y el archivo donde vive. Antes de agregar
+o cambiar una funcionalidad, buscar ahí qué reglas ya existen (`grep -rn "REQ-" docs/requerimientos/`).
+
+**Regla:** cada cambio funcional actualiza ese registro **en el mismo commit**.
+
+- Funcionalidad nueva ⇒ REQ nuevo (ID correlativo del área, en el archivo que corresponde).
+- Cambio de una regla existente ⇒ se edita ese REQ. Si el cambio la invierte, el viejo pasa
+  a `descartado` con el motivo y se escribe uno nuevo que lo reemplaza.
+- Refactor sin cambio de comportamiento ⇒ solo se corrige el link de **Dónde**.
+- Los pendientes también son requerimientos: se anotan con `Estado: pendiente` en su área.
+
+El formato y las convenciones de ID están en
+[docs/requerimientos/README.md](docs/requerimientos/README.md).
+
 ## Stack
 
 - Django + DRF + **Channels** (ASGI, WebSockets) · Redis (channel layer) · PostgreSQL
@@ -63,6 +80,14 @@ docker compose exec web python manage.py test apps.ofertas   # tests (por ahora,
   conjunto tipo 2x$1500 y combos, 3x2), vigencia por fechas y alcance por punto. El motor
   `apps/ofertas/services.cotizar` es la **única fuente de verdad del precio**: ante ofertas
   solapadas aplica la más conveniente para el cliente y nunca sube el precio de lista.
-  Hecho: modelos + motor + tests. Falta: POS cotizando en el server (hoy el precio lo manda
-  el navegador y `registrar_venta` lo cree), ABM de ofertas y reporte de impacto.
+  Hecho: modelos + motor + tests, y el POS cotizando en el server (`/vender/cotizar/`, y
+  `registrar_venta` recotiza al confirmar: el navegador solo manda producto + cantidad).
+  Falta: ABM de ofertas y reporte de impacto.
+- **Depósito** (`Punto.es_deposito`, único): almacén central donde vive el stock que todavía
+  no se repartió. No se vende ahí.
+- **Servicios** (`Producto.es_servicio`): recargas, SUBE. Se cobran con el monto que ingresa
+  el vendedor + la comisión (el `costo` del producto) y no llevan stock.
 - Fuera de MVP: facturación AFIP, clientes/cuenta corriente, productos por peso, variantes.
+
+El detalle de todo esto, con el por qué de cada regla y lo que falta, está en
+[docs/requerimientos/](docs/requerimientos/README.md).
