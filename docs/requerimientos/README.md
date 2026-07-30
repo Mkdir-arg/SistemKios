@@ -48,7 +48,9 @@ Campos opcionales, cuando aportan:
 ### IDs
 
 `REQ-<ÁREA>-<nnn>`, correlativo dentro del área y **nunca reutilizado**: si un
-requerimiento se cae, su número queda marcado como descartado.
+requerimiento se cae, su número queda marcado como descartado. El ID es un identificador
+estable, no un orden de lectura: como los pendientes van al final de cada archivo, los
+números no siguen el orden del texto.
 
 `GEN` generales · `INF` infraestructura · `PTO` puntos · `USR` usuarios y acceso ·
 `CAT` catálogo y precios · `STK` stock · `CAJ` caja y jornada · `VEN` ventas y POS ·

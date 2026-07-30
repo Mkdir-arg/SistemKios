@@ -67,13 +67,15 @@ No hay decimales ni ventas por peso.
 balanza y a repensar precios, stock y ofertas.
 
 ### REQ-GEN-007 · El lector es la forma normal de operar, y su Enter nunca guarda
-**Estado:** implementado · **Dónde:** [ventas/pos.html](../../templates/ventas/pos.html), [stock/ingreso.html](../../templates/stock/ingreso.html), [transferencias/nueva.html](../../templates/transferencias/nueva.html), [catalogo/form.html](../../templates/catalogo/form.html)
+**Estado:** implementado · **Dónde:** [ventas/pos.html](../../templates/ventas/pos.html), [stock/ingreso.html](../../templates/stock/ingreso.html), [catalogo/form.html](../../templates/catalogo/form.html)
 
 El lector de código de barras teclea el código y manda un **Enter**. En todas las
 pantallas ese Enter se intercepta (`@keydown.enter.prevent`) y hace lo que corresponde a
 la pantalla:
 
-- POS, ingreso de stock, transferencias: **busca** el producto escaneado.
+- POS y stock en modo sumar: **busca** el producto escaneado.
+- Stock en modo transferir: **suma una unidad al envío** y el foco vuelve al lector, para
+  poder escanear todo el pedido de corrido ([REQ-STK-013](03-stock.md#req-stk-013--todo-el-stock-se-opera-desde-una-sola-pantalla)).
 - ABM de productos: **abre otra fila** de código para seguir escaneando. No envía el formulario.
 
 **Por qué:** si el Enter del lector enviara el formulario, cualquier escaneo guardaría un

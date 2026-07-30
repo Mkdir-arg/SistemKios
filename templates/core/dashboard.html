@@ -8,7 +8,6 @@
 {% url 'ventas:pos' as url_pos %}
 {% url 'caja:mi_jornada' as url_jornada %}
 {% url 'core:reportes' as url_reportes %}
-{% url 'transferencias:nueva' as url_transferencias %}
 {% url 'puntos:lista' as url_puntos %}
 {% url 'accounts:usuarios_lista' as url_usuarios %}
 {% url 'catalogo:lista' as url_productos %}
@@ -53,8 +52,7 @@
       {% include "partials/module_card.html" with title="Puntos" desc="Tus locales a la calle, cada uno con su stock y su caja." icon="store" done=True url=url_puntos %}
       {% include "partials/module_card.html" with title="Usuarios" desc="Crear vendedores y asignarlos a un punto." icon="users" done=True url=url_usuarios %}
       {% include "partials/module_card.html" with title="Productos y precios" desc="Catálogo, códigos de barras y precio por punto." icon="box" done=True url=url_productos %}
-      {% include "partials/module_card.html" with title="Stock" desc="Ver el stock por ubicación y sumar mercadería con el lector." icon="box" done=True url=url_ingreso_stock %}
-      {% include "partials/module_card.html" with title="Transferencias" desc="Mové stock entre puntos con el lector." icon="box" done=True url=url_transferencias %}
+      {% include "partials/module_card.html" with title="Stock" desc="Ver el stock por ubicación, sumar mercadería y transferir entre puntos, todo con el lector." icon="box" done=True url=url_ingreso_stock %}
       {% include "partials/module_card.html" with title="Reportes" desc="Ventas por punto, medios de pago, stock bajo mínimo y horas." done=True url=url_reportes %}
     {% else %}
       {% include "partials/module_card.html" with title="Vender" desc="Escaneá productos, cobrá y descontá stock." icon="scan" accent=True done=True url=url_pos %}

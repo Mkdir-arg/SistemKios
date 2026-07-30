@@ -5,22 +5,85 @@
 
 {% block content %}
 <div class="w-full"
-     x-data="ingresoStock({ puntoFijo: {{ punto_fijo.id|default:'null' }}, esSuperAdmin: {{ es_super_admin|yesno:'true,false' }}, depositoId: {{ deposito_id }} })">
+     x-data="pantallaStock({
+       puntoFijo: {{ punto_fijo.id|default:'null' }},
+       esSuperAdmin: {{ es_super_admin|yesno:'true,false' }},
+       puedeTransferir: {{ puede_transferir|yesno:'true,false' }},
+       depositoId: {{ deposito_id }},
+       ubicaciones: [{% for u in ubicaciones %}{ id: {{ u.id }}, nombre: '{{ u.nombre|escapejs }}', esDeposito: {{ u.es_deposito|yesno:'true,false' }} }{% if not forloop.last %}, {% endif %}{% endfor %}]
+     })">
 
-  {# --- Contexto de punto --- #}
-  {% if punto_fijo %}
-    <div class="mb-5 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-      <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>{{ punto_fijo }}</span>
-      Estás cargando mercadería en tu punto.
+  {# --- Ubicación de trabajo + modo --- #}
+  <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+    {% if punto_fijo %}
+      <div class="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+        <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>{{ punto_fijo }}</span>
+        Estás cargando mercadería en tu punto.
+      </div>
+    {% elif es_super_admin %}
+      <div>
+        <label for="ubicacion" class="mb-1.5 block font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+          Ubicación
+        </label>
+        <select id="ubicacion" x-model="puntoId" @change="cambiarUbicacion()" class="input min-w-[14rem] !py-2.5">
+          <template x-for="u in ubicaciones" :key="u.id">
+            <option :value="u.id" x-text="u.nombre"></option>
+          </template>
+        </select>
+      </div>
+    {% else %}
+      <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+        No tenés un punto asignado. Pedile al administrador que te asigne uno.
+      </p>
+    {% endif %}
+
+    {% if puede_transferir %}
+      <div class="inline-flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-800 dark:bg-zinc-800/60" role="tablist">
+        <button type="button" role="tab" :aria-selected="modo === 'sumar'" @click="setModo('sumar')"
+                class="btn !px-4 !py-2 text-sm"
+                :class="modo === 'sumar' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'">
+          Sumar mercadería
+        </button>
+        <button type="button" role="tab" :aria-selected="modo === 'transferir'" @click="setModo('transferir')"
+                class="btn !px-4 !py-2 text-sm"
+                :class="modo === 'transferir' ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'">
+          Transferir
+          <span x-show="envio.length" class="tnum inline-flex items-center rounded-md bg-brand-50 px-1.5 text-xs font-semibold text-brand-600 dark:bg-brand-500/15 dark:text-brand-300" x-text="totalUnidades"></span>
+        </button>
+      </div>
+    {% endif %}
+  </div>
+
+  {# --- Destino (solo en modo transferir) --- #}
+  <template x-if="modo === 'transferir'">
+    <div class="card mb-4 flex flex-wrap items-end gap-4 p-5">
+      <div class="flex items-end gap-3">
+        <div>
+          <p class="mb-1.5 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Desde</p>
+          <p class="font-display text-lg font-semibold tracking-tight" x-text="nombreUbicacion"></p>
+        </div>
+        <span class="pb-1 text-zinc-300 dark:text-zinc-600">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+        <div>
+          <label for="destino" class="mb-1.5 block font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Hacia</label>
+          <select id="destino" x-model="destinoId" class="input min-w-[14rem] !py-2.5">
+            <option value="">Elegí el destino…</option>
+            <template x-for="u in destinos" :key="u.id">
+              <option :value="u.id" x-text="u.nombre"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+      <p class="text-sm text-zinc-500 dark:text-zinc-400">
+        La mercadería sale de <span class="font-medium text-zinc-700 dark:text-zinc-200" x-text="nombreUbicacion"></span>
+        y entra al destino en el momento.
+      </p>
     </div>
-  {% elif not es_super_admin %}
-    <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
-      No tenés un punto asignado. Pedile al administrador que te asigne uno.
-    </p>
-  {% endif %}
+  </template>
 
   {# --- Campo de escaneo --- #}
-  <div class="card p-5" :class="!puntoActual && 'pointer-events-none opacity-50'">
+  <div class="card p-5" :class="!escaneoHabilitado && 'pointer-events-none opacity-50'">
     <label for="scan" class="mb-2 block font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
       Escaneá o escribí el código
     </label>
@@ -29,15 +92,59 @@
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M16.5 8v8"/></svg>
       </span>
       <input id="scan" x-ref="scan" x-model="scan" type="text" inputmode="numeric" autocomplete="off"
-             class="input !pl-12 font-mono text-lg" placeholder="7790000000000"
-             @keydown.enter.prevent="buscar()" :disabled="!puntoActual || cargando">
+             class="input !pl-12 font-mono text-lg"
+             :placeholder="modo === 'transferir' ? 'Escaneá para agregar al envío…' : '7790000000000'"
+             @keydown.enter.prevent="buscar()" :disabled="!escaneoHabilitado || cargando">
     </div>
-    <p class="mt-2 text-xs text-zinc-400 dark:text-zinc-500">Pasá el lector y el sistema busca solo. También podés tipear el código y apretar Enter.</p>
+    <p class="mt-2 text-xs text-zinc-400 dark:text-zinc-500"
+       x-text="modo === 'transferir' ? (destinoId ? 'Cada escaneo suma una unidad al envío. Ajustá las cantidades abajo.' : 'Elegí primero el destino del envío.') : 'Pasá el lector y el sistema busca solo. También podés tipear el código y apretar Enter.'"></p>
   </div>
 
   {# --- Error --- #}
   <template x-if="error">
     <div class="mt-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10" x-text="error"></div>
+  </template>
+
+  {# --- Envío en armado (modo transferir) --- #}
+  <template x-if="modo === 'transferir' && envio.length">
+    <div class="mt-4">
+      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+        Envío a <span x-text="nombreDestino || '…'"></span>
+      </h3>
+      <ul class="flex flex-col gap-2">
+        <template x-for="(it, i) in envio" :key="it.id">
+          <li class="card flex items-center gap-3 p-3">
+            <template x-if="it.imagen">
+              <img :src="it.imagen" class="h-10 w-10 flex-none rounded-lg border border-zinc-200 object-cover dark:border-zinc-800" alt="">
+            </template>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-medium" x-text="it.nombre"></p>
+              <p class="font-mono text-xs text-zinc-400">
+                en <span x-text="nombreUbicacion"></span>: <span class="tnum" x-text="it.disponible"></span>
+                <span x-show="it.cantidad >= it.disponible" class="text-amber-500"> · lo mandás todo</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="menosEnvio(i)">−</button>
+              <span class="tnum w-8 text-center font-semibold" x-text="it.cantidad"></span>
+              <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700"
+                      :disabled="it.cantidad >= it.disponible" @click="masEnvio(i)">+</button>
+            </div>
+            <button type="button" class="btn btn-ghost !p-1.5 text-zinc-400 hover:text-scan" @click="envio.splice(i, 1)" aria-label="Quitar">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </li>
+        </template>
+      </ul>
+
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" class="btn btn-primary" :disabled="!destinoId || cargando" @click="transferir()">
+          Transferir a <span x-text="nombreDestino || '…'"></span>
+          <span class="tnum" x-text="'(' + totalUnidades + ' u)'"></span>
+        </button>
+        <button type="button" class="btn btn-ghost" @click="envio = []">Vaciar</button>
+      </div>
+    </div>
   </template>
 
   {# --- Servicio (no lleva stock) --- #}
@@ -54,7 +161,7 @@
     </div>
   </template>
 
-  {# --- Producto encontrado --- #}
+  {# --- Producto encontrado (modo sumar) --- #}
   <template x-if="estado === 'encontrado'">
     <div class="card mt-4 p-5">
       <div class="flex flex-wrap items-start justify-between gap-3">
@@ -160,34 +267,52 @@
   {# --- Historial de esta sesión --- #}
   <template x-if="log.length">
     <div class="mt-8">
-      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Cargado recién</h3>
+      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Recién hecho</h3>
       <ul class="flex flex-col gap-2">
         <template x-for="(item, i) in log" :key="i">
           <li class="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <span class="tnum inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                  x-text="'+' + item.agregado"></span>
-            <span class="min-w-0 flex-1 truncate" x-text="item.nombre"></span>
-            <span x-show="item.creado" class="chip !py-0.5">nuevo</span>
-            <span class="tnum text-zinc-400" x-text="'stock ' + item.stock_actual"></span>
+            <template x-if="item.tipo === 'entrada'">
+              <span class="flex min-w-0 flex-1 items-center gap-3">
+                <span class="tnum inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                      x-text="'+' + item.agregado"></span>
+                <span class="min-w-0 flex-1 truncate" x-text="item.nombre"></span>
+                <span x-show="item.creado" class="chip !py-0.5">nuevo</span>
+                <span class="tnum text-zinc-400" x-text="'stock ' + item.stock_actual"></span>
+              </span>
+            </template>
+            <template x-if="item.tipo === 'transferencia'">
+              <span class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+                <span class="tnum inline-flex items-center rounded-md bg-brand-50 px-2 py-0.5 font-semibold text-brand-600 dark:bg-brand-500/10 dark:text-brand-300"
+                      x-text="item.unidades + ' u'"></span>
+                <span class="min-w-0 flex-1 truncate">
+                  <span x-text="item.origen"></span> → <span class="font-medium" x-text="item.destino"></span>
+                  <span class="text-zinc-400" x-text="'· ' + item.productos + (item.productos === 1 ? ' producto' : ' productos')"></span>
+                </span>
+                <span class="font-mono text-xs text-zinc-400" x-text="'#' + item.id"></span>
+              </span>
+            </template>
           </li>
         </template>
       </ul>
     </div>
   </template>
 
-  {# --- Tabla de stock (se actualiza sola al cargar mercadería) --- #}
+  {# --- Tabla de stock (se actualiza sola al cargar o transferir) --- #}
   <div class="mt-10">
     {% include "partials/stock_tabla.html" %}
   </div>
 </div>
 
 <script>
-  window.ingresoStock = function (opts) {
+  window.pantallaStock = function (opts) {
     return {
       esSuperAdmin: opts.esSuperAdmin,
+      puedeTransferir: opts.puedeTransferir,
       puntoFijo: opts.puntoFijo,
       depositoId: opts.depositoId,
+      ubicaciones: opts.ubicaciones || [],
       puntoId: "",
+      modo: "sumar",       // sumar | transferir
       scan: "",
       estado: "idle",      // idle | encontrado | nuevo | servicio
       cargando: false,
@@ -196,11 +321,37 @@
       servicioNombre: "",
       cantidad: 1,
       nuevo: { codigo: "", nombre: "", categoria: "", precio_venta: "", costo: "", cantidad: 0 },
+      destinoId: "",
+      envio: [],
       log: [],
       tablaUbic: [], tablaFilas: [], filtro: "", soloConStock: true, tablaCargada: false,
 
       get puntoActual() {
         return this.puntoFijo || (this.puntoId ? parseInt(this.puntoId) : null);
+      },
+
+      get nombreUbicacion() {
+        const u = this.ubicaciones.find((x) => x.id === this.puntoActual);
+        return u ? u.nombre : "";
+      },
+
+      // Se puede transferir a cualquier ubicación activa menos la de origen.
+      get destinos() {
+        return this.ubicaciones.filter((u) => u.id !== this.puntoActual);
+      },
+
+      get nombreDestino() {
+        const u = this.ubicaciones.find((x) => x.id === parseInt(this.destinoId));
+        return u ? u.nombre : "";
+      },
+
+      get totalUnidades() {
+        return this.envio.reduce((s, it) => s + it.cantidad, 0);
+      },
+
+      get escaneoHabilitado() {
+        if (!this.puntoActual) return false;
+        return this.modo !== "transferir" || !!this.destinoId;
       },
 
       get filasFiltradas() {
@@ -253,9 +404,23 @@
         this.focusScan();
       },
 
+      setModo(modo) {
+        if (this.modo === modo) return;
+        this.modo = modo;
+        // El envío a medio armar se conserva al ir y volver de pestaña.
+        this.reset();
+      },
+
+      cambiarUbicacion() {
+        // Cambió el origen: los disponibles del envío ya no valen.
+        this.envio = [];
+        if (parseInt(this.destinoId) === this.puntoActual) this.destinoId = "";
+        this.reset();
+      },
+
       async buscar() {
         const codigo = this.scan.trim();
-        if (!codigo || !this.puntoActual) return;
+        if (!codigo || !this.escaneoHabilitado) return;
         this.error = "";
         this.cargando = true;
         try {
@@ -263,6 +428,14 @@
           const r = await fetch("{% url 'stock:buscar' %}?" + params.toString());
           const data = await r.json();
           if (!r.ok) throw new Error(data.error || "Error al buscar.");
+
+          if (this.modo === "transferir") {
+            if (!data.found) throw new Error("Código no encontrado: " + codigo);
+            if (data.servicio) throw new Error("«" + data.nombre + "» es un servicio: no lleva stock.");
+            this.alEnvio(data.producto);
+            return;
+          }
+
           if (data.found) {
             if (data.servicio) {
               this.servicioNombre = data.nombre;
@@ -282,6 +455,69 @@
           this.error = e.message;
         } finally {
           this.cargando = false;
+          // En modo transferir el foco vuelve al lector para seguir escaneando.
+          if (this.modo === "transferir") { this.scan = ""; this.focusScan(); }
+        }
+      },
+
+      alEnvio(prod) {
+        if (prod.stock_actual <= 0) {
+          this.error = "«" + prod.nombre + "» no tiene stock en " + this.nombreUbicacion + ".";
+          return;
+        }
+        const it = this.envio.find((x) => x.id === prod.id);
+        if (!it) {
+          this.envio.unshift({
+            id: prod.id,
+            nombre: prod.nombre,
+            imagen: prod.imagen,
+            disponible: prod.stock_actual,
+            cantidad: 1,
+          });
+          return;
+        }
+        // Refresca el disponible: pudo haber cambiado desde el escaneo anterior.
+        it.disponible = prod.stock_actual;
+        if (it.cantidad < it.disponible) it.cantidad++;
+        else this.error = "No hay más stock de «" + it.nombre + "» en " + this.nombreUbicacion + ".";
+      },
+
+      masEnvio(i) {
+        const it = this.envio[i];
+        if (it.cantidad < it.disponible) it.cantidad++;
+      },
+
+      menosEnvio(i) {
+        const it = this.envio[i];
+        if (it.cantidad > 1) it.cantidad--;
+        else this.envio.splice(i, 1);
+      },
+
+      async transferir() {
+        if (this.cargando || !this.envio.length) return;
+        this.cargando = true;
+        this.error = "";
+        try {
+          const data = await this._post("{% url 'stock:transferir' %}", {
+            origen: this.puntoActual,
+            destino: this.destinoId,
+            items: this.envio.map((it) => ({ producto_id: it.id, cantidad: it.cantidad })),
+          });
+          this.log.unshift({
+            tipo: "transferencia",
+            id: data.transferencia_id,
+            origen: data.origen,
+            destino: data.destino,
+            productos: data.productos,
+            unidades: data.unidades,
+          });
+          this.envio = [];
+          this.cargarTabla();
+          this.reset();
+        } catch (e) {
+          this.error = e.message;
+        } finally {
+          this.cargando = false;
         }
       },
 
@@ -295,7 +531,7 @@
             punto: this.puntoActual,
             cantidad: this.cantidad,
           });
-          this.log.unshift({ ...data.producto, agregado: data.agregado, creado: false });
+          this.log.unshift({ tipo: "entrada", ...data.producto, agregado: data.agregado, creado: false });
           this.cargarTabla();
           this.reset();
         } catch (e) {
@@ -319,7 +555,7 @@
             costo: this.nuevo.costo,
             cantidad: this.nuevo.cantidad,
           });
-          this.log.unshift({ ...data.producto, agregado: data.producto.stock_actual, creado: true });
+          this.log.unshift({ tipo: "entrada", ...data.producto, agregado: data.producto.stock_actual, creado: true });
           this.cargarTabla();
           this.reset();
         } catch (e) {

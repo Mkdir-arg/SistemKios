@@ -83,20 +83,50 @@ de ofrecer sumar cantidad. La tabla de stock lista solo productos activos con
 Ver [REQ-CAT-008](02-catalogo-y-precios.md#req-cat-008--un-producto-puede-ser-un-servicio-se-cobra-pero-no-lleva-stock).
 
 ### REQ-STK-009 · El vendedor opera en su punto; el Super Admin elige la ubicación
-**Estado:** implementado · **Dónde:** [stock/views.py](../../apps/stock/views.py)
+**Estado:** implementado · **Dónde:** [stock/views.py](../../apps/stock/views.py) (`_resolver_punto`), [stock/ingreso.html](../../templates/stock/ingreso.html)
 
-`_resolver_punto` decide: el vendedor siempre trabaja sobre su punto (no puede elegir otro);
-el Super Admin elige entre las ubicaciones activas y, si no elige nada, se asume el
-**Depósito**.
+`_resolver_punto` decide en el servidor: el vendedor siempre trabaja sobre su punto (no puede
+elegir otro, ni mandando otro `punto` en el request); el Super Admin elige entre las
+ubicaciones activas con el selector **Ubicación** y, si no elige nada, se asume el **Depósito**.
+
+Esa ubicación es el contexto de toda la pantalla: es donde se suma la mercadería y es el
+**origen** de la transferencia ([REQ-STK-013](#req-stk-013--todo-el-stock-se-opera-desde-una-sola-pantalla)).
 
 **Por qué:** la mercadería que compra el dueño entra al Depósito; que sea el default evita el
-error más común de la pantalla.
+error más común de la pantalla. El selector se agregó cuando el stock absorbió a las
+transferencias: hasta entonces el backend ya aceptaba `?punto=` pero la pantalla no lo
+exponía, así que el Super Admin quedaba clavado en el Depósito.
 
 ### REQ-STK-010 · La tabla de stock muestra una fila por producto y una columna por ubicación
 **Estado:** implementado · **Dónde:** [stock/views.py](../../apps/stock/views.py), [partials/stock_tabla.html](../../templates/partials/stock_tabla.html)
 
 Se sirve como JSON (`/stock/tabla/`) para poder refrescarla sin recargar la página cuando
-llega un evento en vivo. Incluye el total por producto.
+llega un evento en vivo. Incluye el total por producto. Se vuelve a pedir después de sumar
+mercadería y después de transferir.
+
+### REQ-STK-013 · Todo el stock se opera desde una sola pantalla
+**Estado:** implementado · **Dónde:** [stock/ingreso.html](../../templates/stock/ingreso.html), [stock/urls.py](../../apps/stock/urls.py), [app_base.html](../../templates/app_base.html)
+
+`/stock/` es el único lugar donde se toca el stock: ver la tabla, sumar mercadería, dar de
+alta un producto con el lector y transferir entre ubicaciones. El Super Admin cambia de tarea
+con dos pestañas sobre el mismo contexto de ubicación:
+
+- **Sumar mercadería** — escanear, poner cantidad, sumar (es lo que ya hacía la pantalla).
+- **Transferir** — elegir destino, escanear el pedido, confirmar. Solo Super Admin
+  ([REQ-TRF-001](07-transferencias.md#req-trf-001--las-transferencias-mueven-stock-entre-ubicaciones-y-las-hace-el-super-admin)),
+  así que el vendedor no ve las pestañas.
+
+El envío a medio armar **sobrevive** al cambio de pestaña; lo que lo vacía es cambiar la
+ubicación de origen ([REQ-TRF-007](07-transferencias.md#req-trf-007--un-envío-es-un-solo-remito-con-todos-sus-ítems)).
+El menú ya no tiene una entrada «Transferencias».
+
+**Por qué:** las dos tareas son la misma pregunta («¿dónde está la mercadería y a dónde va?»)
+y necesitan lo mismo en pantalla: la ubicación de trabajo, el lector y la tabla de stock por
+ubicación. Separadas obligaban a saltar de pantalla y a elegir dos veces el mismo punto. Los
+dos modos existen porque los flujos son distintos de a uno: recibir mercadería es escanear y
+tipear cantidades; armar un envío es elegir un destino una vez y escanear de corrido.
+
+**Reemplaza a:** la pantalla `/transferencias/nueva/` y su ítem de menú.
 
 ## Pendientes
 

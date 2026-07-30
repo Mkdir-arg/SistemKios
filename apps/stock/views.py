@@ -16,6 +16,7 @@ from apps.catalogo.models import (
     margen_desde_precio,
 )
 from apps.puntos.models import Punto
+from apps.transferencias.services import TransferenciaError, crear_transferencia
 
 from .models import StockPunto
 from .services import StockInsuficiente, ingresar_stock
@@ -116,7 +117,10 @@ def _matriz_stock():
 @ensure_csrf_cookie
 @login_required
 def ingreso(request):
-    """Pantalla de ingreso de mercadería con lector."""
+    """
+    Pantalla única del stock: ver la tabla, sumar mercadería con el lector y
+    transferir entre ubicaciones (esto último, solo el Super Admin).
+    """
     user = request.user
     deposito = Punto.get_deposito()
     context = {
@@ -125,6 +129,8 @@ def ingreso(request):
         "punto_fijo": user.punto if user.es_vendedor else None,
         "es_super_admin": user.es_super_admin,
         "deposito_id": deposito.id,
+        # Transferir es del Super Admin, y necesita al menos dos ubicaciones.
+        "puede_transferir": user.es_super_admin and Punto.objects.filter(activo=True).count() > 1,
     }
     return render(request, "stock/ingreso.html", context)
 
@@ -231,6 +237,44 @@ def alta(request):
             )
 
     return JsonResponse({"ok": True, "creado": True, "producto": _payload_producto(producto, punto)})
+
+
+@login_required
+@require_POST
+def transferir(request):
+    """
+    Mueve stock de la ubicación de trabajo a otra. Solo Super Admin: repartir
+    mercadería es decisión del dueño, no del que atiende.
+    """
+    if not request.user.es_super_admin:
+        return JsonResponse({"error": "Las transferencias las maneja el Super Admin."}, status=403)
+
+    data = json.loads(request.body or "{}")
+    origen = _resolver_punto(request, data.get("origen"))
+    destino = Punto.objects.filter(pk=data.get("destino"), activo=True).first()
+    if origen is None:
+        return JsonResponse({"error": "Elegí la ubicación de origen."}, status=400)
+    if destino is None:
+        return JsonResponse({"error": "Elegí la ubicación de destino."}, status=400)
+
+    try:
+        transferencia = crear_transferencia(
+            origen=origen, destino=destino, usuario=request.user, items=data.get("items", [])
+        )
+    except (TransferenciaError, StockInsuficiente) as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+    items = list(transferencia.items.all())
+    return JsonResponse(
+        {
+            "ok": True,
+            "transferencia_id": transferencia.id,
+            "origen": origen.nombre,
+            "destino": destino.nombre,
+            "productos": len(items),
+            "unidades": sum(i.cantidad for i in items),
+        }
+    )
 
 
 @login_required

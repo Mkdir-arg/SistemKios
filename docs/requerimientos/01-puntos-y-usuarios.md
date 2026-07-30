@@ -68,7 +68,7 @@ español y no distinguen si falló el usuario o la contraseña.
 
 `super_admin_required` manda al vendedor al inicio con un aviso («Necesitás permisos de
 administrador para eso»). Los endpoints JSON de administración sí devuelven 403
-([transferencias/views.py](../../apps/transferencias/views.py)).
+(por ejemplo `stock:transferir`, en [stock/views.py](../../apps/stock/views.py)).
 
 **Por qué:** el vendedor está atendiendo gente; una pantalla de error de Django lo trabaría.
 En cambio un endpoint JSON lo consume el propio front, y ahí el código HTTP es lo útil.
