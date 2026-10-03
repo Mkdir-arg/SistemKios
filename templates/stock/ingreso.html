@@ -2,6 +2,7 @@
 
 {% block title %}Stock · SistemKios{% endblock %}
 {% block page_title %}Stock{% endblock %}
+{% block ancho %}max-w-7xl{% endblock %}
 
 {% block content %}
 <div class="w-full"
@@ -17,12 +18,12 @@
   <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
     {% if punto_fijo %}
       <div class="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-        <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>{{ punto_fijo }}</span>
+        <span class="badge badge-brand"><span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>{{ punto_fijo }}</span>
         Estás cargando mercadería en tu punto.
       </div>
     {% elif es_super_admin %}
       <div>
-        <label for="ubicacion" class="mb-1.5 block font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+        <label for="ubicacion" class="label">
           Ubicación
         </label>
         <select id="ubicacion" x-model="puntoId" @change="cambiarUbicacion()" class="input min-w-[14rem] !py-2.5">
@@ -32,7 +33,7 @@
         </select>
       </div>
     {% else %}
-      <p class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+      <p class="alert alert-warning">
         No tenés un punto asignado. Pedile al administrador que te asigne uno.
       </p>
     {% endif %}
@@ -59,14 +60,14 @@
     <div class="card mb-4 flex flex-wrap items-end gap-4 p-5">
       <div class="flex items-end gap-3">
         <div>
-          <p class="mb-1.5 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Desde</p>
+          <p class="label">Desde</p>
           <p class="font-display text-lg font-semibold tracking-tight" x-text="nombreUbicacion"></p>
         </div>
         <span class="pb-1 text-zinc-300 dark:text-zinc-600">
           <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </span>
         <div>
-          <label for="destino" class="mb-1.5 block font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Hacia</label>
+          <label for="destino" class="label">Hacia</label>
           <select id="destino" x-model="destinoId" class="input min-w-[14rem] !py-2.5">
             <option value="">Elegí el destino…</option>
             <template x-for="u in destinos" :key="u.id">
@@ -84,7 +85,7 @@
 
   {# --- Campo de escaneo --- #}
   <div class="card p-5" :class="!escaneoHabilitado && 'pointer-events-none opacity-50'">
-    <label for="scan" class="mb-2 block font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+    <label for="scan" class="label">
       Escaneá o escribí el código
     </label>
     <div class="relative">
@@ -102,13 +103,13 @@
 
   {# --- Error --- #}
   <template x-if="error">
-    <div class="mt-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10" x-text="error"></div>
+    <div class="alert alert-error mt-4" x-text="error"></div>
   </template>
 
   {# --- Envío en armado (modo transferir) --- #}
   <template x-if="modo === 'transferir' && envio.length">
     <div class="mt-4">
-      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">
+      <h3 class="section-title mb-3">
         Envío a <span x-text="nombreDestino || '…'"></span>
       </h3>
       <ul class="flex flex-col gap-2">
@@ -121,16 +122,16 @@
               <p class="truncate font-medium" x-text="it.nombre"></p>
               <p class="font-mono text-xs text-zinc-400">
                 en <span x-text="nombreUbicacion"></span>: <span class="tnum" x-text="it.disponible"></span>
-                <span x-show="it.cantidad >= it.disponible" class="text-amber-500"> · lo mandás todo</span>
+                <span x-show="it.cantidad >= it.disponible" class="text-amber-600 dark:text-amber-400"> · lo mandás todo</span>
               </p>
             </div>
             <div class="flex items-center gap-1.5">
-              <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="menosEnvio(i)">−</button>
+              <button type="button" class="btn btn-secondary btn-sm" @click="menosEnvio(i)">−</button>
               <span class="tnum w-8 text-center font-semibold" x-text="it.cantidad"></span>
-              <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700"
+              <button type="button" class="btn btn-secondary btn-sm"
                       :disabled="it.cantidad >= it.disponible" @click="masEnvio(i)">+</button>
             </div>
-            <button type="button" class="btn btn-ghost !p-1.5 text-zinc-400 hover:text-scan" @click="envio.splice(i, 1)" aria-label="Quitar">
+            <button type="button" class="btn btn-ghost btn-icon text-zinc-400 hover:text-scan" @click="quitarEnvio(i)" aria-label="Quitar">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </li>
@@ -142,7 +143,7 @@
           Transferir a <span x-text="nombreDestino || '…'"></span>
           <span class="tnum" x-text="'(' + totalUnidades + ' u)'"></span>
         </button>
-        <button type="button" class="btn btn-ghost" @click="envio = []">Vaciar</button>
+        <button type="button" class="btn btn-ghost" @click="envio = []; focusScan()">Vaciar</button>
       </div>
     </div>
   </template>
@@ -156,7 +157,7 @@
       <div class="text-sm">
         <p class="font-medium"><span x-text="servicioNombre"></span> es un servicio.</p>
         <p class="mt-0.5 text-zinc-500 dark:text-zinc-400">No lleva stock — se cobra directamente en el POS. No hace falta cargarlo acá.</p>
-        <button type="button" class="btn btn-ghost mt-2 !px-3 !py-1.5 text-sm ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="reset()">Entendido</button>
+        <button type="button" class="btn btn-secondary btn-sm mt-2" @click="reset()">Entendido</button>
       </div>
     </div>
   </template>
@@ -174,12 +175,12 @@
             <h3 class="font-display text-xl font-semibold tracking-tight" x-text="producto.nombre"></h3>
             <p class="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
               <span x-show="producto.categoria" x-text="producto.categoria"></span>
-              <span x-show="producto.precio">· $<span x-text="producto.precio"></span></span>
+              <span x-show="producto.precio">· $<span x-text="SK.fmt(producto.precio)"></span></span>
             </p>
           </div>
         </div>
         <div class="text-right">
-          <p class="font-mono text-xs uppercase tracking-wider text-zinc-400">Stock en <span x-text="producto.ubicacion"></span></p>
+          <p class="section-title">Stock en <span x-text="producto.ubicacion"></span></p>
           <p class="tnum font-display text-3xl font-bold" x-text="producto.stock_actual"></p>
           <p class="mt-0.5 text-xs text-zinc-400">General: <span class="tnum font-semibold text-zinc-500 dark:text-zinc-300" x-text="producto.total"></span></p>
         </div>
@@ -187,7 +188,7 @@
 
       {# Desglose por ubicación #}
       <div class="mt-4">
-        <p class="mb-1.5 font-mono text-[0.65rem] uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Stock por ubicación</p>
+        <p class="section-title mb-1.5">Stock por ubicación</p>
         <div class="flex flex-wrap gap-1.5">
           <template x-for="u in producto.desglose" :key="u.nombre">
             <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
@@ -201,11 +202,11 @@
 
       <div class="mt-5 flex flex-wrap items-end gap-3">
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Cantidad a sumar</label>
+          <label for="cantidad" class="label">Cantidad a sumar</label>
           <div class="flex items-center gap-2">
-            <button type="button" class="btn btn-ghost !px-3 !py-2 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="cantidad = Math.max(1, cantidad - 1)">−</button>
-            <input x-ref="cantidad" x-model.number="cantidad" type="number" min="1" class="input tnum w-24 text-center text-lg" @keydown.enter.prevent="agregar()">
-            <button type="button" class="btn btn-ghost !px-3 !py-2 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="cantidad = cantidad + 1">+</button>
+            <button type="button" class="btn btn-secondary !px-3 !py-2" @click="cantidad = Math.max(1, cantidad - 1)">−</button>
+            <input id="cantidad" x-ref="cantidad" x-model.number="cantidad" type="number" min="1" class="input tnum w-24 text-center text-lg" @keydown.enter.prevent="agregar()">
+            <button type="button" class="btn btn-secondary !px-3 !py-2" @click="cantidad = cantidad + 1">+</button>
           </div>
         </div>
         <button type="button" class="btn btn-primary" @click="agregar()" :disabled="cargando">
@@ -232,28 +233,28 @@
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="sm:col-span-2">
-          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Nombre</label>
-          <input x-ref="nombre" x-model="nuevo.nombre" type="text" class="input" placeholder="Ej: Coca-Cola 500ml">
+          <label for="alta-nombre" class="label">Nombre</label>
+          <input id="alta-nombre" x-ref="nombre" x-model="nuevo.nombre" type="text" class="input" placeholder="Ej: Coca-Cola 500ml">
         </div>
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
-          <select x-model="nuevo.categoria" class="input">
+          <label for="alta-categoria" class="label">Categoría</label>
+          <select id="alta-categoria" x-model="nuevo.categoria" class="input">
             <option value="">Sin categoría</option>
             {% for c in categorias %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
           </select>
         </div>
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Precio de venta</label>
-          <input x-model="nuevo.precio_venta" type="number" step="0.01" min="0" class="input tnum" placeholder="0.00">
+          <label for="alta-precio" class="label">Precio de venta</label>
+          <input id="alta-precio" x-model="nuevo.precio_venta" type="number" step="0.01" min="0" class="input tnum" placeholder="0.00">
           <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Se aplica a todos los puntos de venta.</p>
         </div>
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Costo (opcional)</label>
-          <input x-model="nuevo.costo" type="number" step="0.01" min="0" class="input tnum" placeholder="0.00">
+          <label for="alta-costo" class="label">Costo (opcional)</label>
+          <input id="alta-costo" x-model="nuevo.costo" type="number" step="0.01" min="0" class="input tnum" placeholder="0.00">
         </div>
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Cantidad inicial</label>
-          <input x-model.number="nuevo.cantidad" type="number" min="0" class="input tnum" placeholder="0">
+          <label for="alta-cantidad" class="label">Cantidad inicial</label>
+          <input id="alta-cantidad" x-model.number="nuevo.cantidad" type="number" min="0" class="input tnum" placeholder="0">
         </div>
       </div>
 
@@ -267,22 +268,22 @@
   {# --- Historial de esta sesión --- #}
   <template x-if="log.length">
     <div class="mt-8">
-      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Recién hecho</h3>
+      <h3 class="section-title mb-3">Recién hecho</h3>
       <ul class="flex flex-col gap-2">
         <template x-for="(item, i) in log" :key="i">
           <li class="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-900">
             <template x-if="item.tipo === 'entrada'">
               <span class="flex min-w-0 flex-1 items-center gap-3">
-                <span class="tnum inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                <span class="tnum badge badge-success !rounded-md !text-sm !font-semibold"
                       x-text="'+' + item.agregado"></span>
                 <span class="min-w-0 flex-1 truncate" x-text="item.nombre"></span>
-                <span x-show="item.creado" class="chip !py-0.5">nuevo</span>
+                <span x-show="item.creado" class="badge badge-brand">nuevo</span>
                 <span class="tnum text-zinc-400" x-text="'stock ' + item.stock_actual"></span>
               </span>
             </template>
             <template x-if="item.tipo === 'transferencia'">
               <span class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-                <span class="tnum inline-flex items-center rounded-md bg-brand-50 px-2 py-0.5 font-semibold text-brand-600 dark:bg-brand-500/10 dark:text-brand-300"
+                <span class="tnum badge badge-brand !rounded-md !text-sm !font-semibold"
                       x-text="item.unidades + ' u'"></span>
                 <span class="min-w-0 flex-1 truncate">
                   <span x-text="item.origen"></span> → <span class="font-medium" x-text="item.destino"></span>
@@ -371,22 +372,6 @@
           this.tablaFilas = d.filas;
         } catch (e) {}
         this.tablaCargada = true;
-      },
-
-      _csrf() {
-        const m = document.cookie.match(/csrftoken=([^;]+)/);
-        return m ? m[1] : "";
-      },
-
-      async _post(url, body) {
-        const r = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-CSRFToken": this._csrf() },
-          body: JSON.stringify(body),
-        });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || "Ocurrió un error.");
-        return data;
       },
 
       focusScan() {
@@ -482,15 +467,23 @@
         else this.error = "No hay más stock de «" + it.nombre + "» en " + this.nombreUbicacion + ".";
       },
 
+      // Después de cada botón el foco vuelve al lector, para seguir escaneando el envío.
       masEnvio(i) {
         const it = this.envio[i];
         if (it.cantidad < it.disponible) it.cantidad++;
+        this.focusScan();
       },
 
       menosEnvio(i) {
         const it = this.envio[i];
         if (it.cantidad > 1) it.cantidad--;
         else this.envio.splice(i, 1);
+        this.focusScan();
+      },
+
+      quitarEnvio(i) {
+        this.envio.splice(i, 1);
+        this.focusScan();
       },
 
       async transferir() {
@@ -498,7 +491,7 @@
         this.cargando = true;
         this.error = "";
         try {
-          const data = await this._post("{% url 'stock:transferir' %}", {
+          const data = await SK.post("{% url 'stock:transferir' %}", {
             origen: this.puntoActual,
             destino: this.destinoId,
             items: this.envio.map((it) => ({ producto_id: it.id, cantidad: it.cantidad })),
@@ -526,7 +519,7 @@
         this.cargando = true;
         this.error = "";
         try {
-          const data = await this._post("{% url 'stock:agregar' %}", {
+          const data = await SK.post("{% url 'stock:agregar' %}", {
             producto_id: this.producto.id,
             punto: this.puntoActual,
             cantidad: this.cantidad,
@@ -546,7 +539,7 @@
         this.cargando = true;
         this.error = "";
         try {
-          const data = await this._post("{% url 'stock:alta' %}", {
+          const data = await SK.post("{% url 'stock:alta' %}", {
             punto: this.puntoActual,
             codigo: this.nuevo.codigo,
             nombre: this.nuevo.nombre,
@@ -569,6 +562,9 @@
         if (this.esSuperAdmin) this.puntoId = String(this.depositoId);
         this.cargarTabla();
         this.focusScan();
+        // Si el foco quedó en otro lado, lo que teclea el lector va igual al campo de escaneo
+        // (salvo mientras se completa el alta rápida, que tiene sus propios campos).
+        SK.capturarLector(() => this.$refs.scan, () => this.escaneoHabilitado && this.estado !== "nuevo");
       },
     };
   };

@@ -1,18 +1,20 @@
 {% extends "app_base.html" %}
+{% load l10n sk %}
 
 {% block title %}{{ titulo }} · SistemKios{% endblock %}
 {% block page_title %}{{ titulo }}{% endblock %}
+{% block ancho %}max-w-3xl{% endblock %}
 
 {% block content %}
 <div class="w-full">
   {% if error %}
-    <div class="mb-4 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10">{{ error }}</div>
+    <div class="alert alert-error mb-4">{{ error }}</div>
   {% endif %}
 
   <form method="post" enctype="multipart/form-data" class="card flex flex-col gap-4 p-6"
         x-data="{
-          costo: '{{ form.costo.value|default_if_none:0 }}',
-          iva: '{{ form.alicuota_iva.value|default_if_none:0 }}',
+          costo: '{{ form.costo.value|default_if_none:0|unlocalize }}',
+          iva: '{{ form.alicuota_iva.value|default_if_none:0|unlocalize }}',
           filas: [{% for pr in precios %}{ margen: '{{ pr.margen|escapejs }}', precio: '{{ pr.valor|escapejs }}' }{% if not forloop.last %}, {% endif %}{% endfor %}],
           get base() { return Math.round(Number(this.costo || 0) * (1 + Number(this.iva || 0) / 100) * 100) / 100 },
           desdeMargen(f) {
@@ -27,7 +29,7 @@
 
     {# Imagen del producto #}
     <div x-data="{ preview: '{{ form.instance.imagen_url|escapejs }}' }">
-      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Imagen</label>
+      <label class="label">Imagen</label>
       <div class="flex items-center gap-4">
         <div class="flex h-24 w-24 flex-none items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
           <template x-if="preview"><img :src="preview" class="h-full w-full object-cover" alt=""></template>
@@ -57,12 +59,12 @@
              }
            }
          }">
-      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Códigos de barras</label>
+      <label class="label">Códigos de barras</label>
       <div class="flex flex-col gap-2" x-ref="cods">
         <template x-for="(c, i) in codigos" :key="i">
           <div class="flex gap-2">
             <input name="codigos" x-model="codigos[i]" @keydown.enter.prevent="enter(i)" class="input font-mono" placeholder="Escaneá o escribí el código" inputmode="numeric" autocomplete="off">
-            <button type="button" class="btn btn-ghost !px-3 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="codigos.splice(i, 1)" x-show="codigos.length > 1" aria-label="Quitar">✕</button>
+            <button type="button" class="btn btn-secondary !px-3" @click="codigos.splice(i, 1)" x-show="codigos.length > 1" aria-label="Quitar">✕</button>
           </div>
         </template>
       </div>
@@ -71,11 +73,11 @@
 
     {# Precio de venta por punto: precio base (costo + IVA) + un margen % por punto #}
     <div>
-      <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Precio de venta por punto</label>
+      <label class="label">Precio de venta por punto</label>
       {% if precios %}
         <p class="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
           Precio base (costo + IVA):
-          <span class="tnum font-medium text-zinc-700 dark:text-zinc-200">$<span x-text="base.toFixed(2)"></span></span>
+          <span class="tnum font-medium text-zinc-700 dark:text-zinc-200">$<span x-text="SK.fmt(base)"></span></span>
         </p>
         <div class="flex flex-col gap-2">
           <div class="hidden items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500 sm:flex">
@@ -95,7 +97,7 @@
               </div>
               {# El precio final no se edita: lo define el margen. El valor viaja en el hidden. #}
               <div class="tnum w-44 rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-2 text-[0.95rem] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-800/60 dark:text-zinc-300">
-                <span x-text="filas[{{ forloop.counter0 }}].precio ? '$' + filas[{{ forloop.counter0 }}].precio : '—'">{% if pr.valor %}${{ pr.valor }}{% else %}—{% endif %}</span>
+                <span x-text="filas[{{ forloop.counter0 }}].precio ? '$' + SK.fmt(filas[{{ forloop.counter0 }}].precio) : '—'">{% if pr.valor %}{{ pr.valor|plata }}{% else %}—{% endif %}</span>
               </div>
               <input type="hidden" name="precio_{{ pr.punto.id }}" value="{{ pr.valor }}" :value="filas[{{ forloop.counter0 }}].precio">
             </div>

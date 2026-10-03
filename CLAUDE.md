@@ -49,7 +49,10 @@ docker compose exec web python manage.py test        # tests: apps.ofertas y app
 - Usuario custom: `accounts.User` con `rol` (`super_admin` / `vendedor`) y FK `punto`.
   Un superusuario de Django es siempre Super Admin.
 - Estilos: editar `assets/css/input.css` (Tailwind v4, tema con `@theme`); **no**
-  editar `static/css/site.css` a mano (es generado).
+  editar `static/css/site.css` a mano (es generado). Usar los componentes de `input.css`
+  (`.btn-*`, `.badge-*`, `.alert-*`, `.table`, `.section-title`, `.label`) en vez de copiar
+  clases sueltas; plata con `|plata` (templates) o `SK.fmt` (JS), y números hacia JS con
+  `|unlocalize`. Helpers JS compartidos en `static/js/sk.js`.
 - Tiempo real (desde Fase 3): grupos WebSocket `punto_{id}`; consumers en `config/routing.py`.
 - Escribir en **español** (código, comentarios, UI).
 

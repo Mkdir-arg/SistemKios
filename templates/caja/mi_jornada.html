@@ -1,63 +1,66 @@
 {% extends "app_base.html" %}
+{% load l10n sk %}
 
 {% block title %}Mi jornada · SistemKios{% endblock %}
 {% block page_title %}Mi jornada{% endblock %}
+{% block ancho %}max-w-4xl{% endblock %}
 
 {% block content %}
-<div class="w-full" x-data="jornadaPanel({ esperado: {{ esperado }} })">
+{# `unlocalize`: en es-AR Django escribe "1500,00", que en JavaScript no es un número. #}
+<div x-data="jornadaPanel({ esperado: {{ esperado|unlocalize }} })">
 
   {# Resumen #}
   <div class="card p-5">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <p class="font-mono text-xs uppercase tracking-widest text-zinc-400">Jornada #{{ jornada.id }} · {{ jornada.punto }}</p>
+        <p class="section-title">Jornada #{{ jornada.id }} · {{ jornada.punto }}</p>
         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Iniciada {{ jornada.hora_inicio|date:"d/m H:i" }}</p>
       </div>
-      <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Abierta</span>
+      <span class="badge badge-success"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Abierta</span>
     </div>
 
     <div class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
       <div><p class="text-xs text-zinc-400">Ventas</p><p class="tnum font-display text-2xl font-bold">{{ ventas_count }}</p></div>
-      <div><p class="text-xs text-zinc-400">Monto inicial</p><p class="tnum font-display text-2xl font-bold">${{ jornada.monto_inicial }}</p></div>
-      <div class="col-span-2"><p class="text-xs text-zinc-400">Efectivo esperado en caja</p><p class="tnum font-display text-2xl font-bold text-brand-600 dark:text-brand-300">$<span x-text="fmt(esperado)"></span></p></div>
+      <div><p class="text-xs text-zinc-400">Monto inicial</p><p class="tnum font-display text-2xl font-bold">{{ jornada.monto_inicial|plata }}</p></div>
+      <div class="col-span-2"><p class="text-xs text-zinc-400">Efectivo esperado en caja</p><p class="tnum font-display text-2xl font-bold text-brand-600 dark:text-brand-300">$<span x-text="SK.fmt(esperado)"></span></p></div>
     </div>
   </div>
 
   {# Movimientos de caja #}
-  <div class="mt-6">
-    <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Movimientos de caja</h3>
+  <div class="mt-8">
+    <h3 class="section-title mb-3">Movimientos de caja</h3>
 
     <div class="card p-4">
-      <div class="flex flex-wrap items-end gap-2">
-        <div class="flex-1">
-          <label class="mb-1 block text-xs text-zinc-500">Tipo</label>
-          <select x-model="mov.tipo" class="input !py-2">
+      <form class="flex flex-wrap items-end gap-3" @submit.prevent="agregarMov()">
+        <div class="min-w-[8rem] flex-1">
+          <label for="mov-tipo" class="label">Tipo</label>
+          <select id="mov-tipo" x-model="mov.tipo" class="input !py-2">
             <option value="ingreso">Ingreso</option>
             <option value="egreso">Egreso</option>
           </select>
         </div>
-        <div class="flex-1">
-          <label class="mb-1 block text-xs text-zinc-500">Monto</label>
-          <input x-model="mov.monto" type="number" step="0.01" min="0" class="input tnum !py-2" placeholder="0.00">
+        <div class="min-w-[8rem] flex-1">
+          <label for="mov-monto" class="label">Monto</label>
+          <input id="mov-monto" x-model="mov.monto" type="number" step="0.01" min="0" class="input tnum !py-2" placeholder="0,00">
         </div>
-        <div class="flex-[2]">
-          <label class="mb-1 block text-xs text-zinc-500">Motivo</label>
-          <input x-model="mov.motivo" type="text" class="input !py-2" placeholder="Ej: retiro, pago proveedor…">
+        <div class="min-w-[12rem] flex-[2]">
+          <label for="mov-motivo" class="label">Motivo</label>
+          <input id="mov-motivo" x-model="mov.motivo" type="text" class="input !py-2" placeholder="Ej: retiro, pago a proveedor…">
         </div>
-        <button type="button" class="btn btn-primary !py-2" @click="agregarMov()" :disabled="cargando">Registrar</button>
-      </div>
+        <button type="submit" class="btn btn-primary !py-2" :disabled="cargando">Registrar</button>
+      </form>
       <template x-if="error"><p class="mt-2 text-sm text-scan" x-text="error"></p></template>
     </div>
 
     {% if movimientos %}
       <ul class="mt-3 flex flex-col gap-2">
         {% for m in movimientos %}
-          <li class="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <span class="tnum inline-flex rounded-md px-2 py-0.5 font-semibold {% if m.tipo == 'ingreso' %}bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400{% else %}bg-scan-soft text-scan dark:bg-scan/10{% endif %}">
-              {% if m.tipo == 'ingreso' %}+{% else %}−{% endif %}${{ m.monto }}
+          <li class="card flex items-center gap-3 !rounded-xl px-4 py-2.5 text-sm">
+            <span class="tnum badge {% if m.tipo == 'ingreso' %}badge-success{% else %}badge-danger{% endif %} !rounded-md !text-sm !font-semibold">
+              {% if m.tipo == 'ingreso' %}+{% else %}−{% endif %}{{ m.monto|plata }}
             </span>
             <span class="min-w-0 flex-1 truncate">{{ m.motivo|default:m.get_tipo_display }}</span>
-            <span class="text-xs text-zinc-400">{{ m.fecha|date:"H:i" }}</span>
+            <span class="tnum text-xs text-zinc-400">{{ m.fecha|date:"H:i" }}</span>
           </li>
         {% endfor %}
       </ul>
@@ -66,23 +69,23 @@
 
   {# Cierre con arqueo #}
   <div class="mt-8">
-    <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Cerrar jornada</h3>
+    <h3 class="section-title mb-3">Cerrar jornada</h3>
     <div class="card p-5">
       <form method="post" action="{% url 'caja:cerrar' %}" @submit="if (!confirm('¿Cerrar la jornada? No vas a poder seguir vendiendo en este turno.')) $event.preventDefault()">
         {% csrf_token %}
-        <label class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">¿Cuánto efectivo contaste en la caja?</label>
+        <label for="monto-final" class="label">¿Cuánto efectivo contaste en la caja?</label>
         <div class="relative max-w-xs">
           <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
-          <input name="monto_final" x-model.number="contado" type="number" step="0.01" min="0" class="input tnum !pl-8 text-lg" placeholder="0.00">
+          <input id="monto-final" name="monto_final" x-model.number="contado" type="number" step="0.01" min="0" class="input tnum !pl-8 text-lg" placeholder="0,00">
         </div>
 
         <div class="mt-4 flex flex-wrap gap-6 text-sm">
-          <div><span class="text-zinc-500 dark:text-zinc-400">Esperado</span><p class="tnum font-semibold">$<span x-text="fmt(esperado)"></span></p></div>
-          <div><span class="text-zinc-500 dark:text-zinc-400">Contado</span><p class="tnum font-semibold">$<span x-text="fmt(contado || 0)"></span></p></div>
+          <div><span class="text-zinc-500 dark:text-zinc-400">Esperado</span><p class="tnum font-semibold">$<span x-text="SK.fmt(esperado)"></span></p></div>
+          <div><span class="text-zinc-500 dark:text-zinc-400">Contado</span><p class="tnum font-semibold">$<span x-text="SK.fmt(contado)"></span></p></div>
           <div>
             <span class="text-zinc-500 dark:text-zinc-400">Diferencia</span>
             <p class="tnum font-semibold" :class="diferencia < 0 ? 'text-scan' : (diferencia > 0 ? 'text-amber-500' : 'text-emerald-500')">
-              $<span x-text="fmt(diferencia)"></span>
+              <span x-text="(diferencia < 0 ? '−' : '') + '$' + SK.fmt(Math.abs(diferencia))"></span>
             </p>
           </div>
         </div>
@@ -102,20 +105,12 @@
       cargando: false,
       error: "",
       get diferencia() { return (Number(this.contado) || 0) - this.esperado; },
-      fmt(n) { return Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
-      _csrf() { const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ""; },
       async agregarMov() {
         if (this.cargando) return;
         if (!(Number(this.mov.monto) > 0)) { this.error = "Poné un monto mayor a 0."; return; }
         this.cargando = true; this.error = "";
         try {
-          const r = await fetch("{% url 'caja:movimiento' %}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": this._csrf() },
-            body: JSON.stringify(this.mov),
-          });
-          const data = await r.json();
-          if (!r.ok) throw new Error(data.error || "Error.");
+          await SK.post("{% url 'caja:movimiento' %}", this.mov);
           window.location.reload();
         } catch (e) { this.error = e.message; this.cargando = false; }
       },

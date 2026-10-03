@@ -36,7 +36,7 @@
         </a>
         {# Stock incluye sumar mercadería y transferir entre ubicaciones. #}
         <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></svg>
           Stock
         </a>
         <a href="{% url 'core:reportes' %}" class="nav-link" {% if vn == 'core:reportes' %}aria-current="page"{% endif %}>
@@ -54,7 +54,7 @@
           Vender
         </a>
         <a href="{% url 'stock:ingreso' %}" class="nav-link" {% if vn == 'stock:ingreso' %}aria-current="page"{% endif %}>
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></svg>
           Stock
         </a>
         <a href="{% url 'caja:mi_jornada' %}" class="nav-link" {% if vn == 'caja:mi_jornada' %}aria-current="page"{% endif %}>
@@ -104,20 +104,17 @@
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-      {% if messages %}
-        <div class="mx-auto mb-4 flex max-w-5xl flex-col gap-2">
-          {% for m in messages %}
-            <div class="rounded-xl border px-4 py-3 text-sm
-                        {% if m.tags == 'success' %}border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400
-                        {% elif m.tags == 'error' %}border-scan/30 bg-scan-soft text-scan dark:bg-scan/10
-                        {% elif m.tags == 'warning' %}border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400
-                        {% else %}border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300{% endif %}">
-              {{ m }}
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-      {% block content %}{% endblock %}
+      {# Ancho máximo del contenido: cada pantalla lo ajusta con el bloque `ancho`. #}
+      <div class="mx-auto w-full {% block ancho %}max-w-6xl{% endblock %}">
+        {% if messages %}
+          <div class="mb-4 flex flex-col gap-2">
+            {% for m in messages %}
+              <div class="alert {% if m.tags == 'success' %}alert-success{% elif m.tags == 'error' %}alert-error{% elif m.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %}">{{ m }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </div>
     </main>
   </div>
 </div>

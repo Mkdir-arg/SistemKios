@@ -2,15 +2,16 @@
 
 {% block title %}Vender · SistemKios{% endblock %}
 {% block page_title %}Vender{% endblock %}
+{% block ancho %}max-w-7xl{% endblock %}
 
 {% block content %}
-<div x-data="pos({ puntoId: {{ jornada.punto.id }} })" class="w-full">
+<div x-data="pos({ puntoId: {{ jornada.punto.id }} })" @keydown.escape.window="cobrando && cerrarCobro()">
   <div class="mb-4 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-    <span class="chip"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Jornada abierta</span>
+    <span class="badge badge-success"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Jornada abierta</span>
     {{ jornada.punto }}
   </div>
 
-  <div class="grid gap-5 lg:grid-cols-[1fr_340px]">
+  <div class="grid gap-5 lg:grid-cols-[1fr_360px]">
 
     {# ---- Columna izquierda: escaneo + carrito ---- #}
     <div>
@@ -19,11 +20,11 @@
           <span class="absolute left-4 top-1/2 -translate-y-1/2 text-scan">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M16.5 8v8"/></svg>
           </span>
-          <input x-ref="scan" x-model="scan" type="text" inputmode="numeric" autocomplete="off"
+          <input x-ref="scan" x-model="scan" type="text" inputmode="numeric" autocomplete="off" aria-label="Código de barras"
                  class="input !pl-12 font-mono text-lg" placeholder="Escaneá un producto…"
                  @keydown.enter.prevent="buscar()" :disabled="cargando">
         </div>
-        <template x-if="error">
+        <template x-if="error && !cobrando">
           <p class="mt-2 text-sm text-scan" x-text="error"></p>
         </template>
       </div>
@@ -31,7 +32,7 @@
       {# Carrito #}
       <div class="mt-4">
         <template x-if="!items.length">
-          <div class="card flex flex-col items-center gap-2 p-10 text-center text-zinc-400 dark:text-zinc-600">
+          <div class="card flex flex-col items-center gap-2 p-10 text-center text-zinc-400 dark:text-zinc-500">
             <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.4 12.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L21 7H6"/></svg>
             <p class="text-sm">Escaneá el primer producto para empezar la venta.</p>
           </div>
@@ -44,37 +45,36 @@
                 <template x-if="it.imagen"><img :src="it.imagen" class="h-10 w-10 flex-none rounded-lg border border-zinc-200 object-cover dark:border-zinc-800" alt=""></template>
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-medium" x-text="it.nombre"></p>
-                  <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400">
+                  <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400">
                     <template x-if="!it.es_servicio">
-                      <span class="tnum" x-text="'$' + fmt(it.precio_lista)"></span>
+                      <span class="tnum" x-text="'$' + SK.fmt(it.precio_lista)"></span>
                     </template>
                     <template x-if="it.es_servicio">
                       <span class="flex items-center gap-1">
                         <span>$</span>
-                        <input x-model.number="it.monto" @input="montoCambio()" type="number" step="0.01" min="0" placeholder="monto"
+                        <input x-model.number="it.monto" @input="montoCambio()" @keydown.enter.prevent="focusScan()" type="number" step="0.01" min="0" placeholder="monto" aria-label="Monto del servicio"
                                class="input tnum !w-24 !px-2 !py-1 !text-xs">
-                        <span x-show="it.comision > 0" class="whitespace-nowrap">+ $<span x-text="fmt(it.comision)"></span></span>
+                        <span x-show="it.comision > 0" class="whitespace-nowrap">+ $<span x-text="SK.fmt(it.comision)"></span></span>
                       </span>
                     </template>
                     <template x-for="of in ofertasDe(it)" :key="of.id">
-                      <span class="rounded bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                            :title="of.nombre" x-text="of.etiqueta"></span>
+                      <span class="badge badge-success" :title="of.nombre" x-text="of.etiqueta"></span>
                     </template>
-                    <span x-show="!it.es_servicio && it.cantidad > it.stock" class="text-amber-500">stock: <span x-text="it.stock"></span></span>
-                    <span x-show="it.es_servicio" class="rounded bg-brand-50 px-1.5 font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-300">servicio</span>
+                    <span x-show="!it.es_servicio && it.cantidad > it.stock" class="badge badge-warning">stock: <span x-text="it.stock"></span></span>
+                    <span x-show="it.es_servicio" class="badge badge-brand">servicio</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="dec(i)">−</button>
+                  <button type="button" class="btn btn-secondary btn-sm" @click="dec(i)" aria-label="Uno menos">−</button>
                   <span class="tnum w-8 text-center font-semibold" x-text="it.cantidad"></span>
-                  <button type="button" class="btn btn-ghost !px-2.5 !py-1.5 ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="inc(i)">+</button>
+                  <button type="button" class="btn btn-secondary btn-sm" @click="inc(i)" :disabled="!it.es_servicio && it.cantidad >= it.stock" aria-label="Uno más">+</button>
                 </div>
                 <div class="w-24 flex-none text-right">
-                  <p class="tnum font-semibold" x-text="'$' + fmt(subtotalDe(it))"></p>
+                  <p class="tnum font-semibold" x-text="'$' + SK.fmt(subtotalDe(it))"></p>
                   <p x-show="descuentoDe(it) > 0" class="tnum text-xs text-zinc-400 line-through"
-                     x-text="'$' + fmt(it.precio_lista * it.cantidad)"></p>
+                     x-text="'$' + SK.fmt(it.precio_lista * it.cantidad)"></p>
                 </div>
-                <button type="button" class="btn btn-ghost !p-1.5 text-zinc-400 hover:text-scan" @click="quitar(i)" aria-label="Quitar">
+                <button type="button" class="btn btn-ghost btn-icon text-zinc-400 hover:text-scan" @click="quitar(i)" aria-label="Quitar">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </li>
@@ -85,7 +85,7 @@
     </div>
 
     {# ---- Columna derecha: resumen ---- #}
-    <div class="lg:sticky lg:top-20 lg:self-start">
+    <div class="lg:sticky lg:top-6 lg:self-start">
       <div class="card p-5">
         <div class="flex items-baseline justify-between">
           <span class="text-sm text-zinc-500 dark:text-zinc-400">Ítems</span>
@@ -93,27 +93,35 @@
         </div>
         <div x-show="descuentoTotal > 0" class="mt-2 flex items-baseline justify-between text-sm">
           <span class="text-zinc-500 dark:text-zinc-400">Sin ofertas</span>
-          <span class="tnum text-zinc-400 line-through" x-text="'$' + fmt(totalLista)"></span>
+          <span class="tnum text-zinc-400 line-through" x-text="'$' + SK.fmt(totalLista)"></span>
         </div>
         <div x-show="descuentoTotal > 0" class="mt-1 flex items-baseline justify-between text-sm font-medium text-emerald-600 dark:text-emerald-400">
           <span>Ahorro</span>
-          <span class="tnum" x-text="'−$' + fmt(descuentoTotal)"></span>
+          <span class="tnum" x-text="'−$' + SK.fmt(descuentoTotal)"></span>
         </div>
         <div class="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
           <p class="text-sm text-zinc-500 dark:text-zinc-400">Total</p>
-          <p class="tnum font-display text-4xl font-bold tracking-tight" x-text="'$' + fmt(total)"></p>
-          <p x-show="items.length && (stale || cotizando)" class="mt-1 text-xs text-zinc-400">Calculando ofertas…</p>
+          <p class="tnum font-display text-4xl font-bold tracking-tight" x-text="'$' + SK.fmt(total)"></p>
+          <p class="mt-1 h-4 text-xs text-zinc-400"><span x-show="items.length && (stale || cotizando)">Calculando ofertas…</span></p>
         </div>
-        <button type="button" class="btn btn-primary mt-5 w-full text-base"
+        <button type="button" class="btn btn-primary mt-4 w-full text-base"
                 :disabled="!items.length || cargando || cotizando || stale" @click="abrirCobro()">
           Cobrar
         </button>
         <button type="button" class="btn btn-ghost mt-2 w-full" :disabled="!items.length" @click="vaciar()">Vaciar</button>
       </div>
 
+      {# Última venta: el vuelto queda a la vista mientras el cajero da el cambio. #}
       <template x-if="ultima">
-        <div class="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
-          Venta #<span x-text="ultima.id"></span> registrada por $<span class="tnum" x-text="fmt(ultima.total)"></span>.
+        <div class="alert alert-success mt-3">
+          <div class="flex items-baseline justify-between gap-3">
+            <span>Venta #<span x-text="ultima.id"></span> registrada</span>
+            <span class="tnum" x-text="'$' + SK.fmt(ultima.total)"></span>
+          </div>
+          <div class="mt-2 flex items-baseline justify-between gap-3 border-t border-emerald-300/60 pt-2 dark:border-emerald-500/30">
+            <span class="font-medium">Vuelto</span>
+            <span class="tnum font-display text-2xl font-bold" x-text="ultima.vuelto > 0 ? '$' + SK.fmt(ultima.vuelto) : 'Sin vuelto'"></span>
+          </div>
         </div>
       </template>
     </div>
@@ -121,40 +129,40 @@
 
   {# ---- Modal de cobro ---- #}
   <template x-if="cobrando">
-    <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" @click.self="cobrando = false">
-      <div class="card w-full max-w-md rounded-b-none p-6 sm:rounded-2xl">
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" @click.self="cerrarCobro()">
+      <div class="card w-full max-w-md rounded-b-none p-6 sm:rounded-2xl" role="dialog" aria-modal="true" aria-labelledby="cobro-titulo">
         <div class="flex items-center justify-between">
-          <h3 class="font-display text-xl font-semibold tracking-tight">Cobrar</h3>
-          <button type="button" class="btn btn-ghost !p-2" @click="cobrando = false" aria-label="Cerrar">
+          <h3 id="cobro-titulo" class="font-display text-xl font-semibold tracking-tight">Cobrar</h3>
+          <button type="button" class="btn btn-ghost btn-icon" @click="cerrarCobro()" aria-label="Cerrar">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
         <div class="mt-3 flex items-baseline justify-between rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-800/60">
           <span class="text-sm text-zinc-500 dark:text-zinc-400">Total a cobrar</span>
-          <span class="tnum font-display text-2xl font-bold" x-text="'$' + fmt(total)"></span>
+          <span class="tnum font-display text-2xl font-bold" x-text="'$' + SK.fmt(total)"></span>
         </div>
 
+        {# Enter en cualquier monto confirma (si alcanza). Escape cierra. #}
         <div class="mt-4 flex flex-col gap-3">
           <template x-for="medio in medios" :key="medio.key">
             <div class="flex items-center gap-3">
-              <label class="flex-1 text-sm font-medium" x-text="medio.label"></label>
+              <label class="flex-1 text-sm font-medium" :for="'pago-' + medio.key" x-text="medio.label"></label>
               <div class="relative w-40">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
-                <input x-model.number="pagos[medio.key]" type="number" step="0.01" min="0"
-                       class="input tnum !pl-7 !py-2 text-right" placeholder="0.00">
+                <input :id="'pago-' + medio.key" x-model.number="pagos[medio.key]" type="number" step="0.01" min="0"
+                       class="input tnum !pl-7 !py-2 text-right" placeholder="0,00" @keydown.enter.prevent="confirmar()"
+                       x-init="medio.key === 'efectivo' && $nextTick(() => $el.focus())">
               </div>
             </div>
           </template>
-          <button type="button" class="btn btn-ghost self-start !px-3 !py-1.5 text-sm ring-1 ring-inset ring-zinc-200 dark:ring-zinc-700" @click="pagoExacto()">
-            Efectivo exacto
-          </button>
+          <button type="button" class="btn btn-secondary btn-sm self-start" @click="pagoExacto()">Efectivo exacto</button>
         </div>
 
         <div class="mt-4 space-y-1 border-t border-zinc-100 pt-4 text-sm dark:border-zinc-800">
-          <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">Pagado</span><span class="tnum" x-text="'$' + fmt(pagado)"></span></div>
-          <div class="flex justify-between" x-show="faltante > 0"><span class="text-scan">Falta</span><span class="tnum text-scan" x-text="'$' + fmt(faltante)"></span></div>
-          <div class="flex justify-between font-medium" x-show="vuelto > 0"><span>Vuelto</span><span class="tnum" x-text="'$' + fmt(vuelto)"></span></div>
+          <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">Pagado</span><span class="tnum" x-text="'$' + SK.fmt(pagado)"></span></div>
+          <div class="flex justify-between" x-show="faltante > 0"><span class="text-scan">Falta</span><span class="tnum text-scan" x-text="'$' + SK.fmt(faltante)"></span></div>
+          <div class="flex items-baseline justify-between font-medium" x-show="vuelto > 0"><span>Vuelto</span><span class="tnum font-display text-xl font-bold" x-text="'$' + SK.fmt(vuelto)"></span></div>
         </div>
 
         <template x-if="error">
@@ -204,14 +212,6 @@
       subtotalDe(it) { return it.subtotal != null ? it.subtotal : (Number(it.precio_lista) || 0) * it.cantidad; },
       descuentoDe(it) { return it.descuento || 0; },
 
-      fmt(n) { return Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
-      _csrf() { const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ""; },
-      async _post(url, body) {
-        const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": this._csrf() }, body: JSON.stringify(body) });
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || "Error.");
-        return data;
-      },
       focusScan() { this.$nextTick(() => this.$refs.scan && this.$refs.scan.focus()); },
 
       _payloadItems() {
@@ -234,7 +234,7 @@
         const seq = ++this._seq;
         this.cotizando = true;
         try {
-          const data = await this._post("{% url 'ventas:cotizar' %}", { items: this._payloadItems() });
+          const data = await SK.post("{% url 'ventas:cotizar' %}", { items: this._payloadItems() });
           if (seq !== this._seq) return;  // ya salió una cotización más nueva
           this._aplicar(data);
           this.stale = false;
@@ -300,9 +300,11 @@
         }
         this.recotizar();
       },
-      inc(i) { const it = this.items[i]; if (it.es_servicio || it.cantidad < it.stock) { it.cantidad++; this.recotizar(); } },
-      dec(i) { const it = this.items[i]; if (it.cantidad > 1) { it.cantidad--; this.recotizar(); } else { this.quitar(i); } },
-      quitar(i) { this.items.splice(i, 1); this.recotizar(); },
+      // Después de cada botón el foco vuelve al lector: si no, el próximo escaneo se pierde
+      // y su Enter "clickea" el botón que quedó con foco.
+      inc(i) { const it = this.items[i]; if (it.es_servicio || it.cantidad < it.stock) { it.cantidad++; this.recotizar(); } this.focusScan(); },
+      dec(i) { const it = this.items[i]; if (it.cantidad > 1) { it.cantidad--; this.recotizar(); this.focusScan(); } else { this.quitar(i); } },
+      quitar(i) { this.items.splice(i, 1); this.recotizar(); this.focusScan(); },
       vaciar() { this.items = []; this.error = ""; this.cot = { total: 0, total_lista: 0, descuento_total: 0 }; this.stale = false; this.focusScan(); },
 
       abrirCobro() {
@@ -311,18 +313,20 @@
         this.pagos = { efectivo: "", tarjeta: "", transferencia: "" };
         this.cobrando = true;
       },
+      cerrarCobro() { this.cobrando = false; this.error = ""; this.focusScan(); },
       pagoExacto() { this.pagos = { efectivo: this.total, tarjeta: "", transferencia: "" }; },
 
       async confirmar() {
         if (this.faltante > 0 || this.cargando) return;
         this.cargando = true;
         this.error = "";
+        const vuelto = this.vuelto;
         try {
-          const data = await this._post("{% url 'ventas:confirmar' %}", {
+          const data = await SK.post("{% url 'ventas:confirmar' %}", {
             items: this._payloadItems(),
             pagos: this.medios.map((m) => ({ medio: m.key, monto: Number(this.pagos[m.key]) || 0 })).filter((p) => p.monto > 0),
           });
-          this.ultima = { id: data.venta_id, total: data.total };
+          this.ultima = { id: data.venta_id, total: data.total, vuelto };
           this.items = [];
           this.cot = { total: 0, total_lista: 0, descuento_total: 0 };
           this.cobrando = false;
@@ -333,6 +337,8 @@
 
       init() {
         this.focusScan();
+        // Si el foco quedó en otro lado, lo que teclea el lector va igual al campo de escaneo.
+        SK.capturarLector(() => this.$refs.scan, () => !this.cobrando);
         if (window.SKRealtime && this.puntoId) {
           window.SKRealtime.connect(this.puntoId, (ev) => {
             if (ev.tipo === "stock") {

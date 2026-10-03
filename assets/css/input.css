@@ -55,19 +55,99 @@
     @apply dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-brand-400;
   }
 
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300;
+  }
+
+  /* Botones. Deshabilitado se ve deshabilitado: el hover solo aplica si está habilitado. */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[0.95rem] font-medium transition;
-    @apply focus-visible:outline-none focus-visible:ring-4 active:scale-[0.985];
+    @apply focus-visible:outline-none focus-visible:ring-4 enabled:active:scale-[0.985];
+    @apply disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none;
   }
   .btn-primary {
-    @apply bg-brand-600 text-white shadow-lg shadow-brand-600/25 hover:bg-brand-500 focus-visible:ring-brand-500/30;
+    @apply bg-brand-600 text-white shadow-lg shadow-brand-600/25 enabled:hover:bg-brand-500 focus-visible:ring-brand-500/30;
+  }
+  .btn-secondary {
+    @apply bg-white text-zinc-700 shadow-sm ring-1 ring-inset ring-zinc-200 enabled:hover:bg-zinc-50 enabled:hover:text-zinc-900 focus-visible:ring-brand-500/30;
+    @apply dark:bg-zinc-900 dark:text-zinc-200 dark:ring-zinc-700 dark:enabled:hover:bg-zinc-800;
   }
   .btn-ghost {
-    @apply text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100;
+    @apply text-zinc-600 enabled:hover:bg-zinc-100 enabled:hover:text-zinc-900 dark:text-zinc-400 dark:enabled:hover:bg-zinc-800 dark:enabled:hover:text-zinc-100;
+  }
+  /* Tamaños: chico (filtros, −/+) e ícono (cuadrado). */
+  .btn-sm {
+    @apply rounded-lg px-3 py-1.5 text-sm;
+  }
+  .btn-icon {
+    @apply rounded-lg p-2;
   }
 
   .card {
     @apply rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900;
+  }
+
+  /* Título de sección (eyebrow): solo para encabezar bloques, no para labels de campos. */
+  .section-title {
+    @apply font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-500;
+  }
+
+  /* Avisos. */
+  .alert {
+    @apply rounded-xl border px-4 py-3 text-sm;
+  }
+  .alert-success {
+    @apply border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400;
+  }
+  .alert-error {
+    @apply border-scan/30 bg-scan-soft text-scan dark:bg-scan/10;
+  }
+  .alert-warning {
+    @apply border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400;
+  }
+  .alert-info {
+    @apply border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300;
+  }
+
+  /* Etiquetas de estado. */
+  .badge {
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  .badge-success {
+    @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400;
+  }
+  .badge-brand {
+    @apply bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300;
+  }
+  .badge-warning {
+    @apply bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400;
+  }
+  .badge-danger {
+    @apply bg-scan-soft text-scan dark:bg-scan/10;
+  }
+  .badge-muted {
+    @apply bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400;
+  }
+
+  /* Tablas: el contenedor scrollea en horizontal en pantallas chicas. */
+  .tablewrap {
+    @apply overflow-x-auto rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900;
+  }
+  .table {
+    @apply w-full text-sm;
+  }
+  .table th {
+    @apply whitespace-nowrap border-b border-zinc-200 bg-zinc-50 px-4 py-2.5 text-left font-mono text-xs font-normal uppercase tracking-wider text-zinc-500;
+    @apply dark:border-zinc-800 dark:bg-zinc-800/60 dark:text-zinc-400;
+  }
+  .table td {
+    @apply border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-800/60;
+  }
+  .table tbody tr:last-of-type td {
+    @apply border-b-0;
+  }
+  .table-empty {
+    @apply px-4 py-8 text-center text-sm text-zinc-400;
   }
 
   /* Ítem de navegación del sidebar. */

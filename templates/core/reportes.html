@@ -1,27 +1,28 @@
 {% extends "app_base.html" %}
+{% load sk %}
 
 {% block title %}Reportes · SistemKios{% endblock %}
 {% block page_title %}Reportes{% endblock %}
 
 {% block content %}
-<div class="w-full">
+<div>
 
   {# KPIs #}
   <div class="grid gap-4 sm:grid-cols-2">
     <div class="card p-5">
-      <p class="font-mono text-xs uppercase tracking-widest text-zinc-400">Ventas de hoy</p>
-      <p class="tnum mt-1 font-display text-3xl font-bold tracking-tight">${{ hoy_total|floatformat:2 }}</p>
+      <p class="section-title">Ventas de hoy</p>
+      <p class="tnum mt-1 font-display text-3xl font-bold tracking-tight">{{ hoy_total|plata }}</p>
       <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ hoy_cant }} venta{{ hoy_cant|pluralize }}</p>
     </div>
     <div class="card p-5">
-      <p class="font-mono text-xs uppercase tracking-widest text-zinc-400">Ventas del mes</p>
-      <p class="tnum mt-1 font-display text-3xl font-bold tracking-tight text-brand-600 dark:text-brand-300">${{ mes_total|floatformat:2 }}</p>
+      <p class="section-title">Ventas del mes</p>
+      <p class="tnum mt-1 font-display text-3xl font-bold tracking-tight text-brand-600 dark:text-brand-300">{{ mes_total|plata }}</p>
       <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ mes_cant }} venta{{ mes_cant|pluralize }}</p>
     </div>
   </div>
 
   {# Ventas por punto #}
-  <h3 class="mt-8 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Ventas por punto (mes)</h3>
+  <h3 class="section-title mt-8">Ventas por punto (mes)</h3>
   <div class="card mt-3 p-5">
     {% if por_punto %}
       <div class="flex flex-col gap-3">
@@ -29,7 +30,7 @@
           <div>
             <div class="mb-1 flex items-baseline justify-between text-sm">
               <span class="font-medium">{{ p.punto__nombre }}</span>
-              <span class="tnum text-zinc-500 dark:text-zinc-400">${{ p.total|floatformat:2 }} · {{ p.cantidad }} venta{{ p.cantidad|pluralize }}</span>
+              <span class="tnum text-zinc-500 dark:text-zinc-400">{{ p.total|plata }} · {{ p.cantidad }} venta{{ p.cantidad|pluralize }}</span>
             </div>
             <div class="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
               <div class="h-full rounded-full bg-brand-500" style="width: {% widthratio p.total tope_punto 100 %}%"></div>
@@ -45,14 +46,14 @@
   <div class="mt-6 grid gap-6 lg:grid-cols-2">
     {# Medios de pago #}
     <div>
-      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Medios de pago (mes)</h3>
+      <h3 class="section-title mb-3">Medios de pago (mes)</h3>
       <div class="card p-5">
         {% if medios %}
           <ul class="flex flex-col gap-2 text-sm">
             {% for m in medios %}
               <li class="flex items-center justify-between">
                 <span>{{ m.label }}</span>
-                <span class="tnum font-medium">${{ m.total|floatformat:2 }}</span>
+                <span class="tnum font-medium">{{ m.total|plata }}</span>
               </li>
             {% endfor %}
           </ul>
@@ -64,7 +65,7 @@
 
     {# Horas por vendedor #}
     <div>
-      <h3 class="mb-3 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Horas por vendedor (mes)</h3>
+      <h3 class="section-title mb-3">Horas por vendedor (mes)</h3>
       <div class="card p-5">
         {% if horas_vendedor %}
           <ul class="flex flex-col gap-2 text-sm">
@@ -83,29 +84,29 @@
   </div>
 
   {# Stock bajo mínimo #}
-  <h3 class="mt-8 font-mono text-xs uppercase tracking-widest text-zinc-400 dark:text-zinc-600">Stock bajo mínimo</h3>
-  <div class="tablewrap mt-3 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+  <h3 class="section-title mt-8">Stock bajo mínimo</h3>
+  <div class="tablewrap mt-3">
     {% if bajo_minimo %}
-      <table class="w-full text-sm">
+      <table class="table">
         <thead>
-          <tr class="border-b border-zinc-200 bg-zinc-50 text-left font-mono text-xs uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/60">
-            <th class="px-4 py-2.5">Producto</th><th class="px-4 py-2.5">Punto</th>
-            <th class="px-4 py-2.5 text-right">Stock</th><th class="px-4 py-2.5 text-right">Mínimo</th>
+          <tr>
+            <th>Producto</th><th>Punto</th>
+            <th class="text-right">Stock</th><th class="text-right">Mínimo</th>
           </tr>
         </thead>
         <tbody>
           {% for s in bajo_minimo %}
-            <tr class="border-b border-zinc-100 last:border-0 dark:border-zinc-800/60">
-              <td class="px-4 py-2.5">{{ s.producto.nombre }}</td>
-              <td class="px-4 py-2.5 text-zinc-500 dark:text-zinc-400">{{ s.punto.nombre }}</td>
-              <td class="tnum px-4 py-2.5 text-right font-semibold text-amber-600 dark:text-amber-400">{{ s.cantidad }}</td>
-              <td class="tnum px-4 py-2.5 text-right text-zinc-400">{{ s.stock_minimo }}</td>
+            <tr>
+              <td>{{ s.producto.nombre }}</td>
+              <td class="text-zinc-500 dark:text-zinc-400">{{ s.punto.nombre }}</td>
+              <td class="tnum text-right font-semibold text-amber-600 dark:text-amber-400">{{ s.cantidad }}</td>
+              <td class="tnum text-right text-zinc-400">{{ s.stock_minimo }}</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     {% else %}
-      <p class="p-5 text-sm text-zinc-400">No hay productos bajo el mínimo. 👌</p>
+      <p class="p-5 text-sm text-zinc-400">No hay productos bajo el mínimo.</p>
     {% endif %}
   </div>
 </div>

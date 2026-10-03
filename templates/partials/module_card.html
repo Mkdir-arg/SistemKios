@@ -11,6 +11,10 @@
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M16.5 8v8"/></svg>
       {% elif icon == "box" %}
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+      {% elif icon == "layers" %}
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></svg>
+      {% elif icon == "chart" %}
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
       {% elif icon == "clock" %}
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       {% else %}
@@ -18,12 +22,8 @@
       {% endif %}
     </div>
 
-    {% if done %}
-      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Disponible
-      </span>
-    {% else %}
-      <span class="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wide text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">{{ fase }}</span>
+    {% if not done %}
+      <span class="badge badge-muted font-mono uppercase">{{ fase }}</span>
     {% endif %}
   </div>
 

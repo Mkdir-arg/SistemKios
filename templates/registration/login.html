@@ -62,7 +62,7 @@
       <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Usá el usuario que te dio el administrador.</p>
 
       {% if form.non_field_errors %}
-        <div class="mt-6 rounded-xl border border-scan/30 bg-scan-soft px-4 py-3 text-sm text-scan dark:bg-scan/10">
+        <div class="alert alert-error mt-6">
           {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
         </div>
       {% endif %}
@@ -71,13 +71,13 @@
         {% csrf_token %}
 
         <div>
-          <label for="{{ form.username.id_for_label }}" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Usuario</label>
+          <label for="{{ form.username.id_for_label }}" class="label">Usuario</label>
           {{ form.username }}
           {% for error in form.username.errors %}<p class="mt-1 text-xs text-scan">{{ error }}</p>{% endfor %}
         </div>
 
         <div>
-          <label for="{{ form.password.id_for_label }}" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Contraseña</label>
+          <label for="{{ form.password.id_for_label }}" class="label">Contraseña</label>
           <div class="relative">
             {{ form.password }}
             <button type="button" tabindex="-1"

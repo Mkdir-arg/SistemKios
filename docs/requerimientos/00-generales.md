@@ -47,15 +47,22 @@ son los que usa el dueño: punto, jornada, arqueo, oferta, cotizar.
 solo agrega errores.
 
 ### REQ-GEN-005 · La plata es Decimal con dos decimales
-**Estado:** implementado · **Dónde:** [ofertas/models.py](../../apps/ofertas/models.py)
+**Estado:** implementado · **Dónde:** [ofertas/models.py](../../apps/ofertas/models.py), [core/formato.py](../../apps/core/formato.py)
 
 Todos los importes son `DecimalField(max_digits=12, decimal_places=2)` y se redondean con
 `ofertas.models.redondear` (`ROUND_HALF_UP`). Nunca `float`. En repartos de descuento, el
 resto del redondeo se asigna de forma explícita para que la suma de las líneas dé exacto
 el total ([REQ-OFE-008](06-ofertas.md#req-ofe-008--el-descuento-de-un-combo-se-reparte-entre-sus-líneas)).
 
+En pantalla, un importe se muestra siempre igual: `$1.234,50` (punto de miles, coma
+decimal; negativos `−$1.234,50`). En templates se usa el filtro `|plata`
+([core/formato.py](../../apps/core/formato.py)); en el navegador, `SK.fmt`
+([static/js/sk.js](../../static/js/sk.js)). Un número que viaja de un template a JavaScript
+va con `|unlocalize`: en es-AR Django escribe `1500,00`, que en JavaScript no es un número.
+
 **Por qué:** un centavo de diferencia entre el total y la suma de las líneas rompe el
-arqueo de caja y la confianza en el sistema.
+arqueo de caja y la confianza en el sistema. Y el mismo monto escrito de tres formas
+distintas según la pantalla obliga a releer cada número.
 
 ### REQ-GEN-006 · Los productos se venden por unidades enteras
 **Estado:** implementado · **Dónde:** [stock/models.py](../../apps/stock/models.py), [ventas/models.py](../../apps/ventas/models.py)
@@ -67,7 +74,7 @@ No hay decimales ni ventas por peso.
 balanza y a repensar precios, stock y ofertas.
 
 ### REQ-GEN-007 · El lector es la forma normal de operar, y su Enter nunca guarda
-**Estado:** implementado · **Dónde:** [ventas/pos.html](../../templates/ventas/pos.html), [stock/ingreso.html](../../templates/stock/ingreso.html), [catalogo/form.html](../../templates/catalogo/form.html)
+**Estado:** implementado · **Dónde:** [ventas/pos.html](../../templates/ventas/pos.html), [stock/ingreso.html](../../templates/stock/ingreso.html), [catalogo/form.html](../../templates/catalogo/form.html), [static/js/sk.js](../../static/js/sk.js)
 
 El lector de código de barras teclea el código y manda un **Enter**. En todas las
 pantallas ese Enter se intercepta (`@keydown.enter.prevent`) y hace lo que corresponde a
@@ -77,6 +84,11 @@ la pantalla:
 - Stock en modo transferir: **suma una unidad al envío** y el foco vuelve al lector, para
   poder escanear todo el pedido de corrido ([REQ-STK-013](03-stock.md#req-stk-013--todo-el-stock-se-opera-desde-una-sola-pantalla)).
 - ABM de productos: **abre otra fila** de código para seguir escaneando. No envía el formulario.
+
+En el POS y en Stock el lector no pierde escaneos: después de cada botón (−, +, quitar,
+vaciar) el foco vuelve al campo de escaneo, y si igual quedó fuera de un campo, lo que
+teclea el lector se redirige al campo de escaneo (`SK.capturarLector`). Si no, el escaneo se
+perdía y su Enter "clickeaba" el botón que había quedado con foco.
 
 **Por qué:** si el Enter del lector enviara el formulario, cualquier escaneo guardaría un
 producto a medio cargar. Pasó, y por eso la regla es explícita.
@@ -148,3 +160,12 @@ esto complica el deploy sin beneficio medible. Si el volumen crece, esto se revi
 
 Se edita `assets/css/input.css` (Tailwind v4, tema con `@theme`) y se compila con
 `npm run build` / `npm run watch`. `static/css/site.css` no se toca a mano.
+
+Las piezas de la interfaz son componentes de `input.css`, no clases sueltas copiadas en
+cada template: `.btn` (+ `-primary`, `-secondary`, `-ghost`, `-sm`, `-icon`; deshabilitado se
+ve deshabilitado), `.input`, `.label`, `.card`, `.section-title`, `.alert-*`, `.badge-*`,
+`.tablewrap` + `.table`. El ancho del contenido lo fija `app_base.html` (bloque `ancho`,
+`max-w-6xl` por defecto; formularios más angostos, POS y Stock más anchos).
+
+**Por qué:** cada pantalla armando sus propias etiquetas, avisos y tablas a mano terminaba
+con radios, colores y espaciados que no coincidían entre sí.

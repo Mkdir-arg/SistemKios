@@ -63,6 +63,10 @@ Una venta tiene N `Pago`, cada uno con medio (efectivo, tarjeta, transferencia/Q
 La suma tiene que alcanzar el total; si sobra, la diferencia es el vuelto y **no se guarda**.
 Los pagos en 0 se ignoran.
 
+En el POS el cobro se hace con teclado: el foco arranca en Efectivo, Enter confirma y Escape
+cierra. El vuelto se ve mientras se cobra y queda a la vista después de confirmar, hasta la
+próxima venta, porque el cajero lo necesita mientras da el cambio.
+
 **Por qué:** «te pago $5000 en efectivo y el resto con QR» es lo normal en el mostrador. El
 vuelto no se registra porque no es plata del negocio.
 

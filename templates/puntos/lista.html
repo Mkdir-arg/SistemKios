@@ -4,41 +4,40 @@
 {% block page_title %}Puntos{% endblock %}
 
 {% block content %}
-<div class="w-full">
-  <div class="mb-4 flex items-center justify-between gap-3">
-    <p class="text-sm text-zinc-500 dark:text-zinc-400">Tus locales a la calle. Cada uno con su stock, precios y caja.</p>
-    <a href="{% url 'puntos:crear' %}" class="btn btn-primary !py-2">
-      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      Nuevo punto
-    </a>
-  </div>
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <p class="text-sm text-zinc-500 dark:text-zinc-400">Tus locales a la calle. Cada uno con su stock, precios y caja.</p>
+  <a href="{% url 'puntos:crear' %}" class="btn btn-primary !py-2">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    Nuevo punto
+  </a>
+</div>
 
-  <div class="tablewrap rounded-2xl border border-zinc-200 dark:border-zinc-800">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-zinc-200 bg-zinc-50 text-left font-mono text-xs uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/60">
-          <th class="px-4 py-2.5">Nombre</th><th class="px-4 py-2.5">Dirección</th>
-          <th class="px-4 py-2.5 text-center">Vendedores</th><th class="px-4 py-2.5 text-center">Estado</th>
-          <th class="px-4 py-2.5"></th>
+<div class="tablewrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Nombre</th><th>Dirección</th>
+        <th class="!text-center">Vendedores</th><th class="!text-center">Estado</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in puntos %}
+        <tr>
+          <td class="font-medium">
+            {{ p.nombre }}
+            {% if p.es_deposito %}<span class="badge badge-brand ml-1">Depósito</span>{% endif %}
+          </td>
+          <td class="text-zinc-500 dark:text-zinc-400">{{ p.direccion|default:"—" }}</td>
+          <td class="tnum text-center">{{ p.vendedores_count }}</td>
+          <td class="text-center">
+            {% if p.activo %}<span class="badge badge-success">Activo</span>{% else %}<span class="badge badge-muted">Inactivo</span>{% endif %}
+          </td>
+          <td class="text-right"><a href="{% url 'puntos:editar' p.pk %}" class="font-medium text-brand-600 hover:underline dark:text-brand-300">Editar</a></td>
         </tr>
-      </thead>
-      <tbody>
-        {% for p in puntos %}
-          <tr class="border-b border-zinc-100 last:border-0 dark:border-zinc-800/60">
-            <td class="px-4 py-2.5 font-medium">{{ p.nombre }}</td>
-            <td class="px-4 py-2.5 text-zinc-500 dark:text-zinc-400">{{ p.direccion|default:"—" }}</td>
-            <td class="tnum px-4 py-2.5 text-center">{{ p.vendedores_count }}</td>
-            <td class="px-4 py-2.5 text-center">
-              {% if p.activo %}<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">Activo</span>
-              {% else %}<span class="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800">Inactivo</span>{% endif %}
-            </td>
-            <td class="px-4 py-2.5 text-right"><a href="{% url 'puntos:editar' p.pk %}" class="font-medium text-brand-600 hover:underline dark:text-brand-300">Editar</a></td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="5" class="px-4 py-8 text-center text-zinc-400">Todavía no hay puntos. Creá el primero.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+      {% empty %}
+        <tr><td colspan="5" class="table-empty">Todavía no hay puntos. Creá el primero.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

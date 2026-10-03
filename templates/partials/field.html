@@ -5,7 +5,7 @@
       {{ field }} {{ field.label }}
     </label>
   {% else %}
-    <label for="{{ field.id_for_label }}" class="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ field.label }}</label>
+    <label for="{{ field.id_for_label }}" class="label">{{ field.label }}</label>
     {{ field }}
   {% endif %}
   {% if field.help_text %}<p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{{ field.help_text }}</p>{% endif %}

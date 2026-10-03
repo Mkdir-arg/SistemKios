@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.core.formato import plata
+
 from .models import MovimientoCaja
 from .services import (
     JornadaError,
@@ -107,7 +109,7 @@ def cerrar(request):
     resultado = cerrar_jornada(jornada=jornada, monto_final=monto_final)
     messages.success(
         request,
-        f"Jornada cerrada. Esperado ${resultado['esperado']}, contado ${resultado['contado']}, "
-        f"diferencia ${resultado['diferencia']}.",
+        f"Jornada cerrada. Esperado {plata(resultado['esperado'])}, contado {plata(resultado['contado'])}, "
+        f"diferencia {plata(resultado['diferencia'])}.",
     )
     return redirect("core:home")
