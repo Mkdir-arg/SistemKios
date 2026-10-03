@@ -1,0 +1,20 @@
+# Dependencias de SistemKios: única fuente para Vercel (que las lee de acá) y para Docker.
+[project]
+name = "sistemkios"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "psycopg[binary]>=3.2",
+    "django-environ>=0.11",
+    "whitenoise>=6.6",
+    "Pillow>=10.4",
+    # Imágenes de producto en Supabase Storage (API compatible con S3).
+    "django-storages[s3]>=1.14",
+    # Tokens que firma Django para que cada pantalla escuche solo su punto en Supabase Realtime.
+    "PyJWT[crypto]>=2.9",
+]
+
+[tool.vercel.scripts]
+# Corre después de instalar dependencias: migra y crea el Super Admin (solo en producción).
+build = "python scripts/vercel_build.py"

@@ -1,6 +1,8 @@
 from decimal import Decimal, InvalidOperation
+from io import BytesIO
 
 from django.contrib import messages
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
@@ -27,18 +29,28 @@ def lista(request):
     return render(request, "catalogo/lista.html", {"productos": productos})
 
 
-def _resize_imagen(producto, max_lado=800):
-    """Reduce la imagen recién subida si es muy grande (evita fotos enormes)."""
-    if not producto.imagen:
-        return
+def _achicar_imagen(archivo, max_lado=800):
+    """
+    Devuelve la imagen subida achicada si es muy grande (evita fotos enormes).
+
+    Trabaja en memoria, antes de guardar: así sirve para cualquier almacenamiento (disco en
+    local, Supabase Storage en producción). Si algo falla, devuelve el archivo tal cual.
+    """
     try:
-        ruta = producto.imagen.path
-        img = Image.open(ruta)
-        if max(img.size) > max_lado:
-            img.thumbnail((max_lado, max_lado))
-            img.save(ruta)
+        img = Image.open(archivo)
+        formato = img.format or "JPEG"
+        if max(img.size) <= max_lado:
+            archivo.seek(0)
+            return archivo
+        img.thumbnail((max_lado, max_lado))
+        if formato == "JPEG" and img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        salida = BytesIO()
+        img.save(salida, format=formato)
+        return ContentFile(salida.getvalue(), name=archivo.name)
     except Exception:
-        pass
+        archivo.seek(0)
+        return archivo
 
 
 def _guardar(request, producto=None):
@@ -108,6 +120,8 @@ def _guardar(request, producto=None):
                     nueva = form.cleaned_data.get("nueva_categoria", "").strip()
                     if nueva:
                         prod.categoria, _ = Categoria.objects.get_or_create(nombre=nueva)
+                    if "imagen" in request.FILES:
+                        prod.imagen = _achicar_imagen(request.FILES["imagen"])
                     prod.save()
 
                     # Sincroniza códigos (borra los que se quitaron, agrega los nuevos).
@@ -130,9 +144,6 @@ def _guardar(request, producto=None):
                             )
                         else:
                             PrecioPunto.objects.filter(producto=prod, punto=p).delete()
-
-                if "imagen" in request.FILES:
-                    _resize_imagen(prod)
 
                 messages.success(request, "Producto guardado.")
                 return redirect("catalogo:lista")

@@ -127,17 +127,18 @@ incluso si el producto ya no se trabaja.
 
 ## Infraestructura
 
-### REQ-INF-001 · Corre en Docker Compose con Postgres y Redis
+### REQ-INF-001 · En local corre en Docker Compose con Postgres
 **Estado:** implementado · **Dónde:** [docker-compose.yml](../../docker-compose.yml), [config/settings.py](../../config/settings.py)
 
 `docker compose up --build` migra, crea el Super Admin y levanta la app en `:8000`.
-Servicios: `web` (Django/Daphne sobre ASGI), `db` (Postgres) y `redis` (channel layer).
+Servicios: `web` (Django con `runserver`) y `db` (Postgres). Supabase es opcional en local:
+sin sus variables la app anda igual, sin tiempo real y con las imágenes en disco.
 
 ### REQ-INF-002 · La app se sirve por ASGI porque hay WebSockets
-**Estado:** implementado · **Dónde:** [config/asgi.py](../../config/asgi.py), [config/routing.py](../../config/routing.py)
+**Estado:** descartado · **Lo reemplaza:** [REQ-INF-006](#req-inf-006--producción-corre-en-vercel-con-la-base-en-supabase)
 
-No hay modo WSGI-solo: el tiempo real es parte del producto, no un extra
-([REQ-RT-001](09-tiempo-real.md#req-rt-001--cada-punto-tiene-un-canal-en-vivo)).
+Era así mientras el tiempo real eran WebSockets propios (Channels + Daphne + Redis). Con el
+paso a Vercel el tiempo real lo sirve Supabase Realtime y la app es WSGI.
 
 ### REQ-INF-003 · Hay un healthcheck liviano en `/healthz/`
 **Estado:** implementado · **Dónde:** [core/views.py](../../apps/core/views.py)
@@ -148,12 +149,10 @@ Devuelve `ok` en texto plano, sin tocar la base ni la sesión.
 falle por una sesión vencida.
 
 ### REQ-INF-004 · Las imágenes de producto las sirve la app
-**Estado:** implementado · **Dónde:** [config/urls.py](../../config/urls.py)
+**Estado:** descartado · **Lo reemplaza:** [REQ-INF-008](#req-inf-008--las-imágenes-de-producto-viven-en-supabase-storage)
 
-`/media/` lo sirve Django con `django.views.static.serve`. No hay nginx delante.
-
-**Por qué:** el tráfico es interno y bajo (unas pocas cajas), y sumar un nginx solo para
-esto complica el deploy sin beneficio medible. Si el volumen crece, esto se revisa.
+`/media/` lo servía Django desde un volumen de Railway. En Vercel el disco no persiste. Queda
+solo para desarrollo local ([config/urls.py](../../config/urls.py)).
 
 ### REQ-INF-005 · El CSS se compila; `static/css/site.css` es generado
 **Estado:** implementado · **Dónde:** [assets/css/input.css](../../assets/css/input.css)
@@ -169,3 +168,40 @@ ve deshabilitado), `.input`, `.label`, `.card`, `.section-title`, `.alert-*`, `.
 
 **Por qué:** cada pantalla armando sus propias etiquetas, avisos y tablas a mano terminaba
 con radios, colores y espaciados que no coincidían entre sí.
+
+### REQ-INF-006 · Producción corre en Vercel, con la base en Supabase
+**Estado:** implementado · **Dónde:** [vercel.json](../../vercel.json), [pyproject.toml](../../pyproject.toml), [scripts/vercel_build.py](../../scripts/vercel_build.py), [config/settings.py](../../config/settings.py)
+**Reemplaza a:** [REQ-INF-002](#req-inf-002--la-app-se-sirve-por-asgi-porque-hay-websockets)
+
+Django corre en Vercel como una función WSGI (región `gru1`, São Paulo). Las dependencias
+salen de `pyproject.toml`. La base es el Postgres de Supabase: la app usa el pooler en modo
+transacción (puerto 6543, sin conexiones persistentes ni cursores del lado del servidor) y
+las migraciones van por el modo sesión (`DATABASE_URL_MIGRACIONES`). El build migra y crea el
+Super Admin **solo en el deploy de producción**; un preview no toca la base. Los estáticos
+los junta y sirve Vercel desde su CDN.
+
+**Por qué:** no mantener servidores. Los WebSockets propios en Vercel existen (beta), pero
+mantener la función viva todo el día por cada POS abierto excede el plan gratuito
+(360 GB-h de memoria por mes contra ~1.440 de una función de 2 GB 24/7); por eso el tiempo
+real va por Supabase ([REQ-RT-001](09-tiempo-real.md#req-rt-001--cada-punto-tiene-un-canal-en-vivo)).
+
+### REQ-INF-007 · Las tablas de la app no se exponen por la Data API de Supabase
+**Estado:** implementado · **Dónde:** [core/migrations/0001_supabase.py](../../apps/core/migrations/0001_supabase.py)
+
+Los roles `anon` y `authenticated` no tienen permisos sobre el esquema `public` (tablas,
+secuencias, funciones, también las que se creen después). Django se conecta como `postgres`.
+Conviene además apagar la Data API en el panel de Supabase.
+
+**Por qué:** la clave anon viaja al navegador (la usa Realtime). Con los permisos por defecto
+de Supabase, cualquiera con esa clave podría leer o escribir las tablas de la app por HTTP,
+usuarios y contraseñas hasheadas incluidos.
+
+### REQ-INF-008 · Las imágenes de producto viven en Supabase Storage
+**Estado:** implementado · **Dónde:** [config/settings.py](../../config/settings.py), [catalogo/views.py](../../apps/catalogo/views.py) (`_achicar_imagen`)
+**Reemplaza a:** [REQ-INF-004](#req-inf-004--las-imágenes-de-producto-las-sirve-la-app)
+
+Se suben por la API compatible con S3 (`django-storages`) a un bucket público y se sirven
+directo desde Supabase. Antes de guardar, la imagen se achica en memoria a 800 px de lado
+como máximo. Sin las variables `SUPABASE_S3_*` (en local) van a disco.
+
+**Por qué:** el disco de una función de Vercel no persiste entre deploys ni entre instancias.

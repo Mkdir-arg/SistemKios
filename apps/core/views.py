@@ -1,7 +1,8 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, F, Sum
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
@@ -10,10 +11,30 @@ from apps.puntos.models import Punto
 from apps.stock.models import StockPunto
 from apps.ventas.models import Pago, Venta
 
+from .realtime import DURACION_TOKEN, token_para
+
 
 def healthz(request):
     """Endpoint liviano para el healthcheck de la plataforma."""
     return HttpResponse("ok", content_type="text/plain")
+
+
+@login_required
+def tiempo_real_token(request):
+    """Config y token para que el navegador se conecte a Supabase Realtime (REQ-RT-003)."""
+    if not settings.TIEMPO_REAL_HABILITADO:
+        return JsonResponse({"habilitado": False})
+    respuesta = JsonResponse(
+        {
+            "habilitado": True,
+            "url": settings.SUPABASE_URL,
+            "anon_key": settings.SUPABASE_ANON_KEY,
+            "token": token_para(request.user),
+            "vence_en": DURACION_TOKEN,
+        }
+    )
+    respuesta["Cache-Control"] = "no-store"
+    return respuesta
 
 
 @login_required

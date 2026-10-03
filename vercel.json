@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "django",
+  "regions": ["gru1"],
+  "functions": {
+    "config/wsgi.py": {
+      "excludeFiles": "{node_modules/**,assets/**,docs/**,media/**,**/tests.py}"
+    }
+  }
+}

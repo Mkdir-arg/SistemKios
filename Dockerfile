@@ -18,13 +18,14 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Las dependencias salen de pyproject.toml (la misma fuente que usa Vercel).
+COPY pyproject.toml .
+RUN pip install uv && uv pip install --system -r pyproject.toml
 
 COPY . .
 # Trae el CSS recién compilado (pisa el que venga del repo, evita quedar viejo).
 COPY --from=assets /app/static/css/site.css ./static/css/site.css
 
 ENTRYPOINT ["sh", "./entrypoint.sh"]
-# Producción: servidor ASGI (Daphne) escuchando el puerto que asigna la plataforma.
-CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"]
+# Esta imagen es para desarrollo local (docker compose). Producción corre en Vercel.
+CMD ["sh", "-c", "python manage.py runserver 0.0.0.0:${PORT:-8000}"]

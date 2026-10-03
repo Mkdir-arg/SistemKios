@@ -26,14 +26,17 @@ El formato y las convenciones de ID están en
 
 ## Stack
 
-- Django + DRF + **Channels** (ASGI, WebSockets) · Redis (channel layer) · PostgreSQL
+- Django (WSGI) · PostgreSQL · tiempo real con **Supabase Realtime** (Broadcast, canales privados)
 - Front: **HTMX + Alpine.js + Tailwind CSS v4** (server-driven; el POS maneja el carrito en el cliente)
-- Docker Compose: `web` (Django/Daphne) + `db` (Postgres) + `redis`
+- Producción: **Vercel** (Django como función, región `gru1`) + **Supabase** (Postgres, Realtime,
+  Storage para las imágenes). Dependencias en `pyproject.toml`. Ver REQ-INF-006 a 008.
+- Local: Docker Compose con `web` (runserver) + `db` (Postgres); Supabase es opcional.
 
 ## Cómo correr
 
 ```sh
 npm install && npm run build      # compila static/css/site.css (o `npm run watch`)
+                                  # site.css se commitea: Vercel no corre el build de Tailwind
 docker compose up --build         # migra, crea Super Admin y levanta en :8000
 ```
 
@@ -53,7 +56,9 @@ docker compose exec web python manage.py test        # tests: ofertas, stock, ve
   (`.btn-*`, `.badge-*`, `.alert-*`, `.table`, `.section-title`, `.label`) en vez de copiar
   clases sueltas; plata con `|plata` (templates) o `SK.fmt` (JS), y números hacia JS con
   `|unlocalize`. Helpers JS compartidos en `static/js/sk.js`.
-- Tiempo real (desde Fase 3): grupos WebSocket `punto_{id}`; consumers en `config/routing.py`.
+- Tiempo real: canal `punto-{id}` en Supabase Realtime. Se publica con
+  `apps.core.realtime.notificar_punto` dentro de `on_commit`; el navegador se suscribe con
+  `SKRealtime.connect` (`static/js/realtime.js`) usando el token de `/tiempo-real/token/`.
 - Escribir en **español** (código, comentarios, UI).
 
 ## Roles
@@ -68,9 +73,9 @@ docker compose exec web python manage.py test        # tests: ofertas, stock, ve
   (StockPunto, MovimientoStock, servicio `aplicar_movimiento`); pantalla "Sumar stock" con lector.
 - **Fase 2 (hecha):** apps `caja` (Jornada, MovimientoCaja, arqueo) y `ventas`
   (Venta/DetalleVenta/Pago, `registrar_venta`); POS con lector y cobro pago mixto; Mi jornada.
-- **Fase 3 (hecha):** tiempo real con Channels — `PuntoConsumer` (grupos `punto_{id}`),
-  `apps/core/realtime.notificar_punto`, eventos on_commit en stock/ventas/jornada,
-  `static/js/realtime.js`, feed en vivo en dashboard, stock del POS reactivo.
+- **Fase 3 (hecha):** tiempo real — `apps/core/realtime.notificar_punto`, eventos on_commit
+  en stock/ventas/jornada, `static/js/realtime.js`, feed en vivo en dashboard, stock del POS
+  reactivo. Nació con Channels + Redis; al pasar a Vercel se movió a Supabase Realtime.
 - **Fase 4 (hecha):** app `transferencias` (Transferencia/TransferenciaItem, `crear_transferencia`
   atómico salida/entrada); reportes en `apps/core` (ventas por punto/medio, stock bajo mínimo,
   horas por vendedor).

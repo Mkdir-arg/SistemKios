@@ -62,7 +62,7 @@
         {% endif %}
         <span class="inline-flex items-center gap-1.5 whitespace-nowrap text-xs" :class="conectado ? 'text-emerald-500' : 'text-zinc-400'">
           <span class="h-2 w-2 rounded-full" :class="conectado ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'"></span>
-          <span x-text="conectado ? 'En vivo' : 'Conectando…'"></span>
+          <span x-text="conectado ? 'En vivo' : (sinTiempoReal ? 'Sin tiempo real' : 'Conectando…')"></span>
         </span>
       </div>
     </div>
@@ -108,6 +108,7 @@
       puntos: opts.puntos || [],
       puntoId: opts.puntoFijo || (opts.puntos[0] ? opts.puntos[0].id : null),
       conectado: false,
+      sinTiempoReal: false,
       eventos: [],
       _stop: null,
       get puntoActual() { return this.puntoFijo || this.puntoId; },
@@ -118,6 +119,8 @@
         if (!this.puntoActual) return;
         this._stop = window.SKRealtime.connect(this.puntoActual, (ev) => {
           if (ev.tipo === "conectado") { this.conectado = true; return; }
+          if (ev.tipo === "desconectado") { this.conectado = false; return; }
+          if (ev.tipo === "sin_tiempo_real") { this.sinTiempoReal = true; return; }
           ev._t = new Date().toLocaleTimeString("es-AR");
           this.eventos.unshift(ev);
           if (this.eventos.length > 30) this.eventos.pop();

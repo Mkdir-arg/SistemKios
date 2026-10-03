@@ -29,16 +29,12 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 # --- Aplicaciones -----------------------------------------------------------
 INSTALLED_APPS = [
-    # Daphne primero: reemplaza runserver por el servidor ASGI (http + websocket).
-    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Terceros
-    "channels",
     # Propias
     "apps.core",
     "apps.puntos",
@@ -53,7 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # WhiteNoise sirve los estáticos en producción (Daphne no lo hace solo).
+    # WhiteNoise sirve los estáticos fuera de Vercel (en Vercel los sirve su CDN).
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -81,8 +77,8 @@ TEMPLATES = [
     },
 ]
 
+# Solo WSGI: el tiempo real lo sirve Supabase Realtime, no esta app (REQ-INF-006).
 WSGI_APPLICATION = "config.wsgi.application"
-ASGI_APPLICATION = "config.asgi.application"
 
 # --- Base de datos ----------------------------------------------------------
 DATABASES = {
@@ -91,16 +87,29 @@ DATABASES = {
         default="postgres://sistemkios:sistemkios@db:5432/sistemkios",
     )
 }
+_db = DATABASES["default"]
+if "supabase" in (_db.get("HOST") or ""):
+    _db.setdefault("OPTIONS", {})["sslmode"] = "require"
+# Pooler de Supabase en modo transacción (puerto 6543), el que usa la app en Vercel: cada
+# consulta puede caer en otra conexión, así que no hay conexiones persistentes ni cursores
+# del lado del servidor.
+if env.bool("DB_POOLER_TRANSACCION", default=str(_db.get("PORT")) == "6543"):
+    _db["CONN_MAX_AGE"] = 0
+    _db["DISABLE_SERVER_SIDE_CURSORS"] = True
 
-# --- Tiempo real (Channels + Redis) -----------------------------------------
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [env("REDIS_URL", default="redis://redis:6379/0")],
-        },
-    },
-}
+# --- Supabase: tiempo real e imágenes ----------------------------------------
+SUPABASE_URL = env("SUPABASE_URL", default="").rstrip("/")
+# Clave pública (anon / publishable): viaja al navegador para conectarse a Realtime.
+SUPABASE_ANON_KEY = env("SUPABASE_ANON_KEY", default="")
+# Con qué firma Django los tokens de Realtime: una clave privada importada en Supabase
+# (ES256/RS256, recomendado) o el JWT secret compartido (HS256).
+# En una variable de entorno el PEM suele venir en una sola línea, con "\n" escritos.
+SUPABASE_JWT_PRIVATE_KEY = env("SUPABASE_JWT_PRIVATE_KEY", default="").replace("\\n", "\n")
+SUPABASE_JWT_KID = env("SUPABASE_JWT_KID", default="")
+SUPABASE_JWT_SECRET = env("SUPABASE_JWT_SECRET", default="")
+TIEMPO_REAL_HABILITADO = bool(
+    SUPABASE_URL and SUPABASE_ANON_KEY and (SUPABASE_JWT_PRIVATE_KEY or SUPABASE_JWT_SECRET)
+)
 
 # --- Autenticación ----------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
@@ -126,8 +135,8 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Archivos subidos por el usuario (imágenes de productos). En producción esta
-# carpeta se monta en un volumen persistente (Railway).
+# Archivos subidos por el usuario (imágenes de productos). En local van a disco; en
+# producción, a Supabase Storage (ver más abajo): el disco de Vercel no persiste.
 MEDIA_URL = "/media/"
 MEDIA_ROOT = env("MEDIA_ROOT", default=str(BASE_DIR / "media"))
 
@@ -144,19 +153,41 @@ STORAGES = {
     },
 }
 
+# Imágenes en Supabase Storage, por su API compatible con S3. El bucket es público:
+# las imágenes se sirven directo desde Supabase, sin pasar por la app.
+SUPABASE_S3_ACCESS_KEY = env("SUPABASE_S3_ACCESS_KEY", default="")
+if SUPABASE_S3_ACCESS_KEY:
+    _bucket = env("SUPABASE_BUCKET", default="media")
+    _host = SUPABASE_URL.split("://", 1)[-1]
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": _bucket,
+            "endpoint_url": f"{SUPABASE_URL}/storage/v1/s3",
+            "access_key": SUPABASE_S3_ACCESS_KEY,
+            "secret_key": env("SUPABASE_S3_SECRET_KEY"),
+            "region_name": env("SUPABASE_S3_REGION", default="sa-east-1"),
+            "addressing_style": "path",
+            "custom_domain": f"{_host}/storage/v1/object/public/{_bucket}",
+            "querystring_auth": False,
+            "file_overwrite": False,
+        },
+    }
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Seguridad y despliegue --------------------------------------------------
-# Railway (y la mayoría de PaaS) termina TLS en un proxy y reenvía por HTTP.
-_railway_domain = env("RAILWAY_PUBLIC_DOMAIN", default="")
-if _railway_domain:
-    ALLOWED_HOSTS = list(ALLOWED_HOSTS) + [_railway_domain]
-    CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + [f"https://{_railway_domain}"]
+# Vercel inyecta los dominios del deploy; se suman a los hosts y orígenes de confianza.
+for _var in ("VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_BRANCH_URL", "VERCEL_URL"):
+    _dominio = env(_var, default="")
+    if _dominio:
+        if "*" not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS = list(ALLOWED_HOSTS) + [_dominio]
+        CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + [f"https://{_dominio}"]
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    # Railway ya sirve HTTPS en el borde; el redirect en la app puede interferir
-    # con el healthcheck, así que va apagado por defecto (activable por env).
+    # Vercel ya fuerza HTTPS en el borde: el redirect en la app va apagado por defecto.
     SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
