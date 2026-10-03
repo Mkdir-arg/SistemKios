@@ -6,7 +6,7 @@ El precio no llega del navegador: se resuelve con `ofertas.cotizar` a partir del
 precio del punto y las ofertas vigentes. Lo único que manda el POS es qué
 producto y cuántas unidades.
 """
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 
@@ -20,6 +20,45 @@ from .models import DetalleVenta, Pago, Venta
 
 class VentaError(Exception):
     """Error de negocio de una venta."""
+
+
+def _pagos_netos(pagos, total):
+    """
+    Valida los pagos y devuelve `({medio: monto}, vuelto)` con lo que queda en la caja.
+
+    Lo pagado tiene que alcanzar el total. Lo que sobra es el vuelto, y el vuelto sale del
+    efectivo: se descuenta del pago en efectivo, porque esa plata vuelve al cliente y no
+    es del negocio. Si el sobrante supera al efectivo (pagaron de más con tarjeta o
+    transferencia), la venta se rechaza: no hay de dónde dar ese vuelto.
+    Los pagos en 0 o negativos se ignoran; dos renglones del mismo medio se suman.
+    """
+    por_medio = {}
+    for p in pagos:
+        try:
+            monto = Decimal(str(p.get("monto", "0")))
+        except InvalidOperation:
+            raise VentaError("Monto de pago inválido.")
+        if not monto.is_finite() or monto <= 0:
+            continue
+        medio = p.get("medio")
+        if medio not in Pago.Medio.values:
+            raise VentaError("Medio de pago inválido.")
+        por_medio[medio] = por_medio.get(medio, Decimal("0.00")) + monto
+
+    pagado = sum(por_medio.values(), Decimal("0.00"))
+    if pagado < total:
+        raise VentaError("Lo pagado es menor al total de la venta.")
+
+    vuelto = pagado - total
+    efectivo = por_medio.get(Pago.Medio.EFECTIVO, Decimal("0.00"))
+    if vuelto > efectivo:
+        raise VentaError(
+            "El vuelto sale del efectivo: lo pagado con tarjeta o transferencia "
+            "no puede superar el total."
+        )
+    if vuelto:
+        por_medio[Pago.Medio.EFECTIVO] = efectivo - vuelto
+    return por_medio, vuelto
 
 
 @transaction.atomic
@@ -40,11 +79,7 @@ def registrar_venta(*, jornada, usuario, items, pagos):
         raise VentaError("Necesitás una jornada abierta para vender.")
 
     cotizacion = cotizar(punto=jornada.punto, items=items)
-
-    # Validación de pagos: lo pagado no puede ser menor al total.
-    pagado = sum((Decimal(str(p.get("monto", "0"))) for p in pagos), Decimal("0.00"))
-    if pagado < cotizacion.total:
-        raise VentaError("Lo pagado es menor al total de la venta.")
+    por_medio, vuelto = _pagos_netos(pagos, cotizacion.total)
 
     venta = Venta.objects.create(
         punto=jornada.punto,
@@ -75,11 +110,10 @@ def registrar_venta(*, jornada, usuario, items, pagos):
                 nota=f"Venta #{venta.pk}",
             )
 
-    for p in pagos:
-        monto = Decimal(str(p.get("monto", "0")))
-        if monto <= 0:
-            continue
-        Pago.objects.create(venta=venta, medio=p.get("medio"), monto=monto)
+    for medio, monto in por_medio.items():
+        if monto > 0:
+            Pago.objects.create(venta=venta, medio=medio, monto=monto)
+    venta.vuelto = vuelto  # no se guarda: el POS lo muestra mientras el cajero da el cambio
 
     transaction.on_commit(
         lambda: notificar_punto(

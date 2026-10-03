@@ -57,18 +57,24 @@ normal, no una falla.
 ## Cobro
 
 ### REQ-VEN-006 · Se cobra con pago mixto y lo pagado no puede ser menor al total
-**Estado:** implementado · **Dónde:** [ventas/services.py](../../apps/ventas/services.py), [ventas/models.py](../../apps/ventas/models.py)
+**Estado:** implementado · **Dónde:** [ventas/services.py](../../apps/ventas/services.py) (`_pagos_netos`), [ventas/migrations/0003_pagos_sin_vuelto.py](../../apps/ventas/migrations/0003_pagos_sin_vuelto.py) · **Verifica:** `apps/ventas/tests.py` (`VueltoTest`, `PagosInvalidosTest`, `MigracionPagosSinVueltoTest`)
 
 Una venta tiene N `Pago`, cada uno con medio (efectivo, tarjeta, transferencia/QR) y monto.
-La suma tiene que alcanzar el total; si sobra, la diferencia es el vuelto y **no se guarda**.
-Los pagos en 0 se ignoran.
+La suma tiene que alcanzar el total; si sobra, la diferencia es el vuelto y **no se guarda**:
+el vuelto sale del efectivo, así que el `Pago` en efectivo se guarda por lo que queda en la
+caja (lo entregado menos el vuelto) y la suma de los pagos da exacto el total. Si lo que
+sobra supera al efectivo (pagaron de más con tarjeta o transferencia), la venta se rechaza.
+Los pagos en 0 o negativos se ignoran, un medio desconocido es error, y dos renglones del
+mismo medio se suman. Las ventas registradas antes de esta regla se corrigieron con la
+migración `ventas/0003_pagos_sin_vuelto`.
 
 En el POS el cobro se hace con teclado: el foco arranca en Efectivo, Enter confirma y Escape
 cierra. El vuelto se ve mientras se cobra y queda a la vista después de confirmar, hasta la
 próxima venta, porque el cajero lo necesita mientras da el cambio.
 
 **Por qué:** «te pago $5000 en efectivo y el resto con QR» es lo normal en el mostrador. El
-vuelto no se registra porque no es plata del negocio.
+vuelto no se registra porque no es plata del negocio: si se guardara, el efectivo esperado
+del arqueo daría de más y marcaría un faltante que no existe (pasó).
 
 ## Registro
 

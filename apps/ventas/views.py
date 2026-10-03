@@ -127,5 +127,6 @@ def confirmar(request):
             "venta_id": venta.id,
             "total": str(venta.total),
             "descuento": str(venta.descuento_total),
+            "vuelto": str(venta.vuelto),
         }
     )

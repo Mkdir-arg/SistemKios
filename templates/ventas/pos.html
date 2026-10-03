@@ -163,13 +163,14 @@
           <div class="flex justify-between"><span class="text-zinc-500 dark:text-zinc-400">Pagado</span><span class="tnum" x-text="'$' + SK.fmt(pagado)"></span></div>
           <div class="flex justify-between" x-show="faltante > 0"><span class="text-scan">Falta</span><span class="tnum text-scan" x-text="'$' + SK.fmt(faltante)"></span></div>
           <div class="flex items-baseline justify-between font-medium" x-show="vuelto > 0"><span>Vuelto</span><span class="tnum font-display text-xl font-bold" x-text="'$' + SK.fmt(vuelto)"></span></div>
+          <p x-show="vueltoSinEfectivo" class="pt-1 text-scan">El vuelto sale del efectivo: con tarjeta o transferencia no se puede cobrar de más.</p>
         </div>
 
         <template x-if="error">
           <p class="mt-3 text-sm text-scan" x-text="error"></p>
         </template>
 
-        <button type="button" class="btn btn-primary mt-5 w-full text-base" :disabled="faltante > 0 || cargando" @click="confirmar()">
+        <button type="button" class="btn btn-primary mt-5 w-full text-base" :disabled="!puedeConfirmar" @click="confirmar()">
           Confirmar venta
         </button>
       </div>
@@ -207,6 +208,9 @@
       get pagado() { return this.medios.reduce((s, m) => s + (Number(this.pagos[m.key]) || 0), 0); },
       get faltante() { return Math.max(0, this.total - this.pagado); },
       get vuelto() { return Math.max(0, this.pagado - this.total); },
+      // El vuelto sale del efectivo (el servidor rechaza la venta si no alcanza).
+      get vueltoSinEfectivo() { return this.vuelto > (Number(this.pagos.efectivo) || 0) + 0.001; },
+      get puedeConfirmar() { return this.faltante <= 0 && !this.vueltoSinEfectivo && !this.cargando; },
 
       ofertasDe(it) { return it.ofertas || []; },
       subtotalDe(it) { return it.subtotal != null ? it.subtotal : (Number(it.precio_lista) || 0) * it.cantidad; },
@@ -317,16 +321,15 @@
       pagoExacto() { this.pagos = { efectivo: this.total, tarjeta: "", transferencia: "" }; },
 
       async confirmar() {
-        if (this.faltante > 0 || this.cargando) return;
+        if (!this.puedeConfirmar) return;
         this.cargando = true;
         this.error = "";
-        const vuelto = this.vuelto;
         try {
           const data = await SK.post("{% url 'ventas:confirmar' %}", {
             items: this._payloadItems(),
             pagos: this.medios.map((m) => ({ medio: m.key, monto: Number(this.pagos[m.key]) || 0 })).filter((p) => p.monto > 0),
           });
-          this.ultima = { id: data.venta_id, total: data.total, vuelto };
+          this.ultima = { id: data.venta_id, total: data.total, vuelto: Number(data.vuelto) || 0 };
           this.items = [];
           this.cot = { total: 0, total_lista: 0, descuento_total: 0 };
           this.cobrando = false;

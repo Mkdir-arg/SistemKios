@@ -40,7 +40,7 @@ docker compose up --build         # migra, crea Super Admin y levanta en :8000
 Login en `/ingresar/`. Panel de Django en `/panel-django/`.
 
 ```sh
-docker compose exec web python manage.py test        # tests: apps.ofertas y apps.stock
+docker compose exec web python manage.py test        # tests: ofertas, stock, ventas y core
 ```
 
 ## Convenciones
