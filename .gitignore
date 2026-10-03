@@ -13,6 +13,8 @@ db.sqlite3
 
 # Entorno (no commitear secretos)
 .env
+.env.*
+!.env.example
 
 # Node / Tailwind
 node_modules/
